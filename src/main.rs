@@ -6,7 +6,7 @@ use std::io::{Write, Read, BufWriter, BufReader};
 
 use sn76489::SN76489;
 
-const MAX_BUFFRE_SIZE : i16 = 4096;
+const MAX_BUFFRE_SIZE : usize = 2048;
 const SAMPLING_RATE : i32 = 44100;
 
 struct VgmPlay<'a> {
@@ -29,11 +29,11 @@ impl<'a> VgmPlay<'a> {
     }
 
     pub fn init(&mut self) {
-        let mut l: Vec<i32> = Vec::with_capacity(MAX_BUFFRE_SIZE as usize);
-        let mut r: Vec<i32> = Vec::with_capacity(MAX_BUFFRE_SIZE as usize);
+        let mut l: Vec<i32> = Vec::with_capacity(MAX_BUFFRE_SIZE);
+        let mut r: Vec<i32> = Vec::with_capacity(MAX_BUFFRE_SIZE);
 
-        l.extend(iter::repeat(0x00).take(MAX_BUFFRE_SIZE as usize));
-        r.extend(iter::repeat(0x00).take(MAX_BUFFRE_SIZE as usize));
+        l.extend(iter::repeat(0x00).take(MAX_BUFFRE_SIZE));
+        r.extend(iter::repeat(0x00).take(MAX_BUFFRE_SIZE));
         self.buffer.push(l);
         self.buffer.push(r);
 
@@ -53,39 +53,50 @@ impl<'a> VgmPlay<'a> {
     pub fn play(&mut self) {
         self.init();
 
-        let mut frame_size: u16;
-        let mut last_frame_size: i16;
-        let mut update_frame_size: i16;
-
         // for testing
         let mut f = BufWriter::new(fs::File::create("./vgm/test_s16le.pcm").unwrap());
 
+        let mut frame_size: usize;
+        let mut update_frame_size: usize;
+        let mut remain_frame_size: usize;
+        let mut buffer_pos: usize;
+
+        remain_frame_size = 0;
         while {
-            frame_size = self.parse_vgm();
-            last_frame_size = frame_size as i16;
+            buffer_pos = 0;
             while {
-                if last_frame_size > MAX_BUFFRE_SIZE {
-                    update_frame_size = MAX_BUFFRE_SIZE;
+                if remain_frame_size > 0 {
+                    frame_size = remain_frame_size;
                 } else {
-                    update_frame_size = last_frame_size;
+                    frame_size = self.parse_vgm() as usize;
                 }
-                self.sn76489.update(&mut self.buffer, update_frame_size as usize);
-                for i in 0..update_frame_size {
-                    let l = self.limit_sampling(self.buffer[0][i as usize]);
-                    let r = self.limit_sampling(self.buffer[1][i as usize]);
-                    // signed 16bit little endian
-                    let write: [u8; 4] = [
-                        ((l as u16 & 0x00ff)     ) as u8,
-                        ((l as u16 & 0xff00) >> 8) as u8,
-                        ((r as u16 & 0x00ff)     ) as u8,
-                        ((r as u16 & 0xff00) >> 8) as u8,
-                    ];
-                    f.write(&write).unwrap();
+                if buffer_pos + frame_size < MAX_BUFFRE_SIZE {
+                    update_frame_size = frame_size;
+                } else {
+                    update_frame_size = MAX_BUFFRE_SIZE - buffer_pos;
                 }
-                last_frame_size -= MAX_BUFFRE_SIZE;
-                // do while loop
-                last_frame_size > 0
+                self.sn76489.update(&mut self.buffer, update_frame_size, buffer_pos);
+                if remain_frame_size > 0 {
+                    remain_frame_size -= update_frame_size;
+                }
+                buffer_pos += update_frame_size;
+                buffer_pos < MAX_BUFFRE_SIZE && !self.vgmend
             } {}
+            // audio_output();
+            remain_frame_size = frame_size - update_frame_size;
+
+            for i in 0..MAX_BUFFRE_SIZE {
+                let l = self.limit_sampling(self.buffer[0][i as usize]);
+                let r = self.limit_sampling(self.buffer[1][i as usize]);
+                // signed 16bit little endian
+                let write: [u8; 4] = [
+                    ((l as u16 & 0x00ff)     ) as u8,
+                    ((l as u16 & 0xff00) >> 8) as u8,
+                    ((r as u16 & 0x00ff)     ) as u8,
+                    ((r as u16 & 0xff00) >> 8) as u8,
+                ];
+                f.write(&write).unwrap();
+            }
             // do while loop
             !self.vgmend
         } {}
