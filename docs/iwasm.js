@@ -55,7 +55,7 @@ function main() {
     audio_node = audio_context.createScriptProcessor(SAMPLE_LENGTH, 1, 1);
 
     // load vgm data
-    fetch('./vgm/03.vgm')
+    fetch('./vgm/vgmsample.vgm')
         .then(response => response.arrayBuffer())
         .then(bytes => wasm_vgm_data.set(new Uint8Array(bytes)))
         .then(results => {
