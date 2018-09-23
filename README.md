@@ -2,32 +2,32 @@
 
 PSG(SN76489) VGM player by Rust
 
-## Now testing
+## WebAssembly demo
 
-`src/main.rs`
-
-```
-// vgm file read (for testing)
-let mut f = BufReader::new(fs::File::open("vgm/03.vgm").unwrap());
-```
-
-```
-// for testing
-let mut f = BufWriter::new(fs::File::create("./vgm/test_s16le.pcm").unwrap());
-```
+[Synth emurator by Rust/WebAssembly](https://h1romas4.github.io/rust-synth-emulation/index.html)
 
 ## Build
+
+Rust setup
+
+```
+rustup install nightly
+rustup target add wasm32-unknown-unknown
+cargo install --git https://github.com/alexcrichton/wasm-gc
+```
+
+Compile
 
 ```
 git remote add origin git@github.com:h1romas4/rust-synth-emulation.git
 cd rust-synth-emulation
-cargo run
+./build.sh
 ```
 
 ## Play
 
 ```
-ffplay -f s16le -ar 44100 -ac 2 vgm/test_s16le.pcm
+docs/index.html
 ```
 
 ## Thanks!
