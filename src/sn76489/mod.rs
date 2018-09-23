@@ -176,7 +176,7 @@ impl SN76489 {
         }
     }
 
-    pub fn update(&mut self, buffer: &mut Vec<Vec<i32>>, length: usize, buffer_pos: usize) {
+    pub fn update(&mut self, buffer: &mut [f32], length: usize, buffer_pos: usize) {
         for j in 0..length {
             // Tone channels
             for i in 0..3 {
@@ -212,14 +212,10 @@ impl SN76489 {
             }
 
             // Build stereo result into buffer (clear buffer)
-            buffer[0][buffer_pos + j] = 0;
-            buffer[1][buffer_pos + j] = 0;
+            buffer[j + buffer_pos] = 0_f32;
             // For all 4 channels
             for i in 0..4 {
-                // left
-                buffer[0][buffer_pos + j] = self.limit_u32(buffer[0][buffer_pos + j] as f32 + self.channels[i]);
-                // right
-                buffer[1][buffer_pos + j] = self.limit_u32(buffer[1][buffer_pos + j] as f32 + self.channels[i]);
+                buffer[j + buffer_pos] +=  self.channels[i] / 32767_f32;
             }
 
             // Increment clock by 1 sample length
@@ -323,18 +319,5 @@ impl SN76489 {
 
     fn mute(&mut self, mask: MuteValues) {
         self.mute = mask as i32;
-    }
-
-    fn limit_u32(&self, sample: f32) -> i32 {
-        let max = i32::max_value() as f32;
-        let min = i32::min_value() as f32;
-
-        if sample > max {
-            return i32::max_value();
-        } else if sample < min {
-            return i32::min_value();
-        }
-
-        sample as i32
     }
 }

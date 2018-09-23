@@ -3,4 +3,8 @@ name = "synth"
 version = "0.1.0"
 authors = ["Hiromasa Tanaka <h1romas4@gmail.com>"]
 
+[lib]
+crate-type = ["cdylib"]
+
 [dependencies]
+lazy_static = "=1.1.0"
