@@ -7,7 +7,6 @@ use std::sync::Mutex;
 use sn76489::SN76489;
 
 const MAX_BUFFRE_SIZE : usize = 4096;
-const SAMPLING_RATE : i32 = 44100;
 
 lazy_static! {
     static ref DATA: Mutex<VgmPlay> = Mutex::new(VgmPlay::from());
@@ -34,7 +33,7 @@ impl VgmPlay {
         }
     }
 
-    pub unsafe fn init(&mut self) {
+    pub unsafe fn init(&mut self, sample_rate: f32) {
         let mut clock_sn76489 : u32;
 
         self.vgmpos = 0x0c; clock_sn76489 = self.get_vgm_u32();
@@ -44,7 +43,7 @@ impl VgmPlay {
             clock_sn76489 = 3579545;
         }
 
-        self.sn76489.init(clock_sn76489 as i32, SAMPLING_RATE);
+        self.sn76489.init(clock_sn76489 as i32, sample_rate as i32);
         self.sn76489.reset();
 
         self.vgmpos = 0;
@@ -150,9 +149,9 @@ pub unsafe extern "C" fn get_vgm_data() -> *const u8 {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn init() {
+pub unsafe extern "C" fn init(sample_rate: f32) {
     let vgmplay = &mut DATA.lock().unwrap();
-    vgmplay.init();
+    vgmplay.init(sample_rate);
 }
 
 #[no_mangle]

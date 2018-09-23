@@ -20,6 +20,8 @@ const SAMPLING_RATE = 44100;
 const SAMPLE_LENGTH = 4096;
 const SAMPLE_CHANNELS = 1;
 
+const MAX_VGM_DATA = 65535;
+
 /**
  * canvas settings
  */
@@ -43,16 +45,18 @@ function main() {
     if(audit_playing) return;
     audit_playing = true;
 
-    wasm_exports.init();
+    // audio setting
+    audio_context = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: SAMPLING_RATE });
+    audio_node = audio_context.createScriptProcessor(SAMPLE_LENGTH, 1, 1);
+
+    // init synth
+    wasm_exports.init(audio_context.sampleRate);
+
     // export sampling buffer
     wasm_audio_buffer = new Float32Array(
         wasm_memory.buffer, wasm_exports.get_audio_buffer(), SAMPLE_LENGTH);
     wasm_vgm_data = new Uint8Array(
-        wasm_memory.buffer, wasm_exports.get_vgm_data(), 65536);
-
-    // audio setting
-    audio_context = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: SAMPLING_RATE });
-    audio_node = audio_context.createScriptProcessor(SAMPLE_LENGTH, 1, 1);
+        wasm_memory.buffer, wasm_exports.get_vgm_data(), MAX_VGM_DATA);
 
     // load vgm data
     fetch('./vgm/vgmsample.vgm')
