@@ -9,7 +9,7 @@ let wasm_memory;
  */
 const imports = {
     env: {
-        math_random: Math.random
+        console_log: console_log
     }
 };
 
@@ -106,3 +106,7 @@ addEventListener('load', () => {
             canvas.addEventListener('click', main, false);
         });
 });
+
+function console_log(value) {
+    console.log("rust output(u32): " + value);
+}

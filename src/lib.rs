@@ -33,7 +33,7 @@ impl VgmPlay {
         }
     }
 
-    pub unsafe fn init(&mut self, sample_rate: f32) {
+    pub fn init(&mut self, sample_rate: f32) {
         let mut clock_sn76489 : u32;
 
         self.vgmpos = 0x0c; clock_sn76489 = self.get_vgm_u32();
@@ -51,7 +51,7 @@ impl VgmPlay {
         self.vgmend = false;
     }
 
-    pub unsafe fn play(&mut self) -> f32 {
+    pub fn play(&mut self) -> f32 {
         let mut frame_size: usize;
         let mut update_frame_size: usize;
         let mut buffer_pos: usize;
@@ -81,24 +81,24 @@ impl VgmPlay {
         buffer_pos as f32
     }
 
-    unsafe fn get_vgm_u8(&mut self) -> u8 {
+    fn get_vgm_u8(&mut self) -> u8 {
         let ret = self.vgmdata[self.vgmpos];
         self.vgmpos += 1;
         ret
     }
 
-    unsafe fn get_vgm_u16(&mut self) -> u16 {
+    fn get_vgm_u16(&mut self) -> u16 {
         self.get_vgm_u8() as u16 + ((self.get_vgm_u8() as u16) << 8)
     }
 
-    unsafe fn get_vgm_u32(&mut self) -> u32 {
+    fn get_vgm_u32(&mut self) -> u32 {
         self.get_vgm_u8() as u32
             + ((self.get_vgm_u8() as u32) << 8)
-            + ((self.get_vgm_u8() as u32) << 16 )
+            + ((self.get_vgm_u8() as u32) << 16)
             + ((self.get_vgm_u8() as u32) << 24)
     }
 
-    unsafe fn parse_vgm(&mut self) -> u16 {
+    fn parse_vgm(&mut self) -> u16 {
         let command: u8;
         let dat: u8;
         let mut wait: u16 = 0;
@@ -132,9 +132,10 @@ impl VgmPlay {
     }
 }
 
-// extern "C" {
-//     fn audio_output();
-// }
+#[allow(dead_code)]
+extern "C" {
+    fn console_log(value: u32);
+}
 
 #[no_mangle]
 pub unsafe extern "C" fn get_audio_buffer() -> *const f32 {
