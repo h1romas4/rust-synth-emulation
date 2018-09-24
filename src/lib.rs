@@ -16,6 +16,7 @@ struct VgmPlay {
     sn76489: SN76489,
     vgmpos: usize,
     remain_frame_size: usize,
+    vgm_loop_offset: usize,
     vgmend: bool,
     buffer: [f32; MAX_BUFFRE_SIZE],
     vgmdata: [u8; 65536]
@@ -27,6 +28,7 @@ impl VgmPlay {
             sn76489: SN76489::default(),
             vgmpos: 0,
             remain_frame_size: 0,
+            vgm_loop_offset: 0,
             vgmend: false,
             buffer: [0_f32; MAX_BUFFRE_SIZE],
             vgmdata: [0; 65536]
@@ -41,6 +43,7 @@ impl VgmPlay {
         let mut clock_sn76489 : u32;
 
         self.vgmpos = 0x0c; clock_sn76489 = self.get_vgm_u32();
+        self.vgmpos = 0x1c; self.vgm_loop_offset = (0x1c + self.get_vgm_u32()) as usize;
         self.vgmpos = 0x34; self.vgmpos = (0x34 + self.get_vgm_u32()) as usize;
 
         if clock_sn76489 == 0 {
@@ -123,7 +126,11 @@ impl VgmPlay {
                 wait = 882;
             }
             0x66 => {
-                self.vgmend = true;
+                if self.vgm_loop_offset == 0 {
+                    self.vgmend = true;
+                } else {
+                    self.vgmpos = self.vgm_loop_offset;
+                }
             }
             0x70...0x7f => {
                 wait = ((command & 0x0f) + 1).into();
