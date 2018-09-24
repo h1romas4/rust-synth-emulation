@@ -33,6 +33,10 @@ impl VgmPlay {
         }
     }
 
+    pub fn new(&mut self) {
+        // for js
+    }
+
     pub fn init(&mut self, sample_rate: f32) {
         let mut clock_sn76489 : u32;
 
@@ -147,6 +151,12 @@ pub unsafe extern "C" fn get_audio_buffer() -> *const f32 {
 pub unsafe extern "C" fn get_vgm_data() -> *const u8 {
     let vgmplay = &mut DATA.lock().unwrap();
     &(vgmplay.vgmdata[0])
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn new() {
+    let vgmplay = &mut DATA.lock().unwrap();
+    vgmplay.new();
 }
 
 #[no_mangle]

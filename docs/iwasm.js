@@ -49,8 +49,8 @@ function main() {
     audio_context = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: SAMPLING_RATE });
     audio_node = audio_context.createScriptProcessor(SAMPLE_LENGTH, 1, 1);
 
-    // init synth
-    wasm_exports.init(audio_context.sampleRate);
+    // for lazystatic
+    wasm_exports.new();
 
     // export sampling buffer
     wasm_audio_buffer = new Float32Array(
@@ -63,6 +63,9 @@ function main() {
         .then(response => response.arrayBuffer())
         .then(bytes => wasm_vgm_data.set(new Uint8Array(bytes)))
         .then(results => {
+            // init synth
+            wasm_exports.init(audio_context.sampleRate);
+            // connect audio
             audio_node.onaudioprocess = vgmplay;
             audio_node.connect(audio_context.destination);
         });
