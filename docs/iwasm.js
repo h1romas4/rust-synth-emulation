@@ -100,7 +100,7 @@ addEventListener('load', () => {
     canvas_context.fillText("Click Here", 260, 280);
 
     // load WebAssembly
-    fetch('synth.wasm')
+    fetch('./synth.wasm?v=0.5.0')
         .then(response => response.arrayBuffer())
         .then(bytes => WebAssembly.instantiate(bytes, imports))
         .then(results => {
