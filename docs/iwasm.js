@@ -3,6 +3,8 @@
  */
 let wasm_exports;
 let wasm_memory;
+let wasm_audio_buffer;
+let wasm_vgm_data;
 
 /**
  * WebAssembly imports (for testing)
@@ -28,6 +30,9 @@ const MAX_VGM_DATA = 65535;
 const CANVAS_WIDTH = 768;
 const CANVAS_HEIGHT = 576;
 
+let canvas;
+let canvas_context;
+
 /**
  * audio context
  */
@@ -35,8 +40,10 @@ let audio_context;
 let audio_buffer;
 let audio_node;
 let audit_playing = false;
-let wasm_audio_buffer;
-let wasm_vgm_data;
+
+let audio_analyser;
+let audio_analyser_buffer;
+let audio_analyser_buffer_length;
 
 /**
  * main
@@ -67,7 +74,14 @@ function main() {
             wasm_exports.init(audio_context.sampleRate);
             // connect audio
             audio_node.onaudioprocess = vgmplay;
-            audio_node.connect(audio_context.destination);
+            // connect fft
+            analyser = audio_context.createAnalyser();
+            audio_analyser_buffer_length = analyser.frequencyBinCount;
+            audio_analyser_buffer = new Uint8Array(audio_analyser_buffer_length);
+            analyser.getByteTimeDomainData(audio_analyser_buffer);
+            audio_node.connect(analyser);
+            analyser.connect(audio_context.destination);
+            draw();
         });
 }
 
@@ -81,12 +95,35 @@ function vgmplay(ev) {
     }
 }
 
+function draw() {
+    requestAnimationFrame(draw);
+
+    analyser.getByteFrequencyData(audio_analyser_buffer);
+
+    canvas_context.fillStyle = 'rgb(0, 0, 0)';
+    canvas_context.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+    canvas_context.lineWidth = 1;
+    canvas_context.beginPath();
+    canvas_context.strokeStyle = 'rgb(0, 0, 255)';
+
+    var width = CANVAS_WIDTH * 1.0 / audio_analyser_buffer_length;
+    var x = 0;
+
+    for(var i = 0; i < audio_analyser_buffer_length; i++) {
+        var v = audio_analyser_buffer[i] / 255;
+        var y = v * CANVAS_HEIGHT / 2;
+        canvas_context.rect(width * i, CANVAS_HEIGHT, width, -y * 1.5);
+    }
+    canvas_context.stroke();
+}
+
 /**
  * initialize.
  */
 addEventListener('load', () => {
     // canvas setting
-    let canvas = document.getElementById('screen');
+    canvas = document.getElementById('screen');
     canvas.setAttribute('width', CANVAS_WIDTH);
     canvas.setAttribute('height', CANVAS_HEIGHT);
     let pixelRatio = window.devicePixelRatio ? window.devicePixelRatio : 1;
@@ -94,13 +131,13 @@ addEventListener('load', () => {
         canvas.style.width = 320 + "px";
         canvas.style.heigth = 240 + "px";
     }
-    let canvas_context = canvas.getContext('2d');
+    canvas_context = canvas.getContext('2d');
     canvas_context.font = "48px serif";
     canvas_context.fillStyle = "#fff";
-    canvas_context.fillText("Click Here", 260, 280);
+    canvas_context.fillText("Click Here", 260, 300);
 
     // load WebAssembly
-    fetch('./synth.wasm?v=0.5.0')
+    fetch('synth.wasm?v=0.6.0')
         .then(response => response.arrayBuffer())
         .then(bytes => WebAssembly.instantiate(bytes, imports))
         .then(results => {
