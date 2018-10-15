@@ -11,7 +11,6 @@ PSG(SN76489) VGM player by Rust
 Rust setup
 
 ```
-rustup install nightly
 rustup target add wasm32-unknown-unknown
 cargo install --git https://github.com/alexcrichton/wasm-gc
 ```
@@ -21,7 +20,10 @@ Compile
 ```
 git remote add origin git@github.com:h1romas4/rust-synth-emulation.git
 cd rust-synth-emulation
+# Linux/macOS
 ./build.sh
+# Windows
+.\build.ps1
 ```
 
 ## Play
