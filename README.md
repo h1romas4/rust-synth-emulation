@@ -18,7 +18,7 @@ cargo install --git https://github.com/alexcrichton/wasm-gc
 Compile
 
 ```
-git remote add origin git@github.com:h1romas4/rust-synth-emulation.git
+git clone git@github.com:h1romas4/rust-synth-emulation.git
 cd rust-synth-emulation
 # Linux/macOS
 ./build.sh
