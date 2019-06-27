@@ -1,44 +1,78 @@
-#[macro_use]
-extern crate lazy_static;
-
 mod sn76489;
 
-use std::sync::Mutex;
+use wasm_bindgen::prelude::*;
 use sn76489::SN76489;
 
-const MAX_BUFFRE_SIZE : usize = 4096;
+const MAX_VGM_SIZE: usize = 65536;
+const MAX_SAMPLING_SIZE: usize = 4096;
 
-lazy_static! {
-    static ref DATA: Mutex<VgmPlay> = Mutex::new(VgmPlay::from());
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(js_namespace = console)]
+    fn log(s: &str);
 }
 
-struct VgmPlay {
+#[allow(unused_macros)]
+macro_rules! console_log {
+    ($($t:tt)*) => (log(&format_args!($($t)*).to_string()))
+}
+
+#[wasm_bindgen]
+pub struct VgmPlay {
     sn76489: SN76489,
     vgmpos: usize,
     remain_frame_size: usize,
     vgm_loop_offset: usize,
     vgmend: bool,
-    buffer: [f32; MAX_BUFFRE_SIZE],
-    vgmdata: [u8; 65536]
+    vgmdata: [u8; MAX_VGM_SIZE],
+    sampling: [f32; MAX_SAMPLING_SIZE]
 }
 
+#[wasm_bindgen]
 impl VgmPlay {
-    pub fn from() -> VgmPlay {
+    ///
+    /// Create sound driver.
+    ///
+    /// # Arguments
+    /// vgmdata - music data
+    /// sampling - WebAudio sampling buffer
+    ///
+    #[wasm_bindgen(constructor)]
+    pub fn from() -> Self {
+        // for debug
+        set_panic_hook();
+
         VgmPlay {
             sn76489: SN76489::default(),
             vgmpos: 0,
             remain_frame_size: 0,
             vgm_loop_offset: 0,
             vgmend: false,
-            buffer: [0_f32; MAX_BUFFRE_SIZE],
-            vgmdata: [0; 65536]
+            vgmdata: [0; MAX_VGM_SIZE],
+            sampling: [0_f32; MAX_SAMPLING_SIZE]
         }
     }
 
-    pub fn new(&mut self) {
-        // for js
+    ///
+    /// Return vgmdata buffer referance.
+    ///
+    pub fn get_vgmdata_ref(&mut self) -> *mut u8 {
+        self.vgmdata.as_mut_ptr()
     }
 
+    ///
+    /// Return sampling buffer referance.
+    ///
+    pub fn get_sampling_ref(&mut self) -> *mut f32 {
+        self.sampling.as_mut_ptr()
+    }
+
+    ///
+    /// Initialize sound driver.
+    ///
+    /// # Arguments
+    /// sample_rate - WebAudio sampling rate
+    ///
     pub fn init(&mut self, sample_rate: f32) {
         let mut clock_sn76489 : u32;
 
@@ -52,12 +86,11 @@ impl VgmPlay {
 
         self.sn76489.init(clock_sn76489 as i32, sample_rate as i32);
         self.sn76489.reset();
-
-        self.vgmpos = 0;
-        self.remain_frame_size = 0;
-        self.vgmend = false;
     }
 
+    ///
+    /// play
+    ///
     pub fn play(&mut self) -> f32 {
         let mut frame_size: usize;
         let mut update_frame_size: usize;
@@ -70,19 +103,18 @@ impl VgmPlay {
             } else {
                 frame_size = self.parse_vgm() as usize;
             }
-            if buffer_pos + frame_size < MAX_BUFFRE_SIZE {
+            if buffer_pos + frame_size < MAX_SAMPLING_SIZE {
                 update_frame_size = frame_size;
             } else {
-                update_frame_size = MAX_BUFFRE_SIZE - buffer_pos;
+                update_frame_size = MAX_SAMPLING_SIZE - buffer_pos;
             }
-            self.sn76489.update(&mut self.buffer, update_frame_size, buffer_pos);
+            self.sn76489.update(&mut self.sampling, update_frame_size, buffer_pos);
             if self.remain_frame_size > 0 {
                 self.remain_frame_size -= update_frame_size;
             }
             buffer_pos += update_frame_size;
-            buffer_pos < MAX_BUFFRE_SIZE && !self.vgmend
+            buffer_pos < MAX_SAMPLING_SIZE && !self.vgmend
         } {}
-        // audio_output();
         self.remain_frame_size = frame_size - update_frame_size;
 
         buffer_pos as f32
@@ -136,44 +168,14 @@ impl VgmPlay {
                 wait = ((command & 0x0f) + 1).into();
             }
             _ => {
-                // panic!("unknown cmd at {:x}: {:x}", self.vgmpos, self.vgmdata[self.vgmpos]);
+                console_log!("unknown cmd at {:x}: {:x}", self.vgmpos - 1, self.vgmdata[self.vgmpos - 1]);
             }
         }
         wait
     }
 }
 
-#[allow(dead_code)]
-extern "C" {
-    fn console_log(value: u32);
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn get_audio_buffer() -> *const f32 {
-    let vgmplay = &mut DATA.lock().unwrap();
-    &(vgmplay.buffer[0])
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn get_vgm_data() -> *const u8 {
-    let vgmplay = &mut DATA.lock().unwrap();
-    &(vgmplay.vgmdata[0])
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn new() {
-    let vgmplay = &mut DATA.lock().unwrap();
-    vgmplay.new();
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn init(sample_rate: f32) {
-    let vgmplay = &mut DATA.lock().unwrap();
-    vgmplay.init(sample_rate);
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn play() -> f32 {
-    let vgmplay = &mut DATA.lock().unwrap();
-    vgmplay.play() as f32
+pub fn set_panic_hook() {
+    #[cfg(feature = "console_error_panic_hook")]
+    console_error_panic_hook::set_once();
 }
