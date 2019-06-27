@@ -8,11 +8,11 @@ PSG(SN76489) VGM player by Rust
 
 ## Build
 
-Rust setup
+Rust and [wasm-pack](https://rustwasm.github.io/wasm-pack) setup
 
 ```
 rustup target add wasm32-unknown-unknown
-cargo install --git https://github.com/alexcrichton/wasm-gc
+curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
 ```
 
 Compile
@@ -20,16 +20,16 @@ Compile
 ```
 git clone git@github.com:h1romas4/rust-synth-emulation.git
 cd rust-synth-emulation
-# Linux/macOS
-./build.sh
-# Windows
-.\build.ps1
+wasm-pack build
+cd www
+npm install
+npm run start
 ```
 
 ## Play
 
 ```
-docs/index.html
+http://localhost:8080/
 ```
 
 ## Thanks!
