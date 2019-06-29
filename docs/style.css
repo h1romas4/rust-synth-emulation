@@ -10,10 +10,10 @@ body {
     overflow: hidden;
     margin: 0;
     padding: 0;
+    background-color: black;
 }
 
 canvas {
     display: block;
-    border-radius: 4px;
     background-color: black;
 }
