@@ -1,5 +1,5 @@
-import { VgmPlay } from "synth_emulation";
-import { memory } from "synth_emulation/synth_emulation_bg";
+import { VgmPlay } from "synth-emulation";
+import { memory } from "synth-emulation/synth_emulation_bg";
 
 // vgm setting
 const MAX_SAMPLING_BUFFER = 4096;

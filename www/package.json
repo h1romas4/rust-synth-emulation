@@ -7,7 +7,7 @@
         "start": "webpack-dev-server"
     },
     "dependencies": {
-        "synth_emulation": "file:../pkg"
+        "synth-emulation": "file:../pkg"
     },
     "devDependencies": {
         "webpack": "^4.29.3",
