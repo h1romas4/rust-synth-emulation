@@ -29,6 +29,7 @@ use std::i32;
 // More testing is needed to find and confirm feedback patterns for
 // SN76489 variants and compatible chips.
 #[allow(dead_code)]
+#[allow(clippy::enum_variant_names)]
 enum FeedbackPatterns {
     // Texas Instruments TMS SN76489N (original) from BBC Micro computer
     FbBbcmicro =   0x8005,
@@ -115,7 +116,7 @@ pub struct SN76489 {
 
 impl SN76489 {
     pub fn init(&mut self, psg_clock_value: i32, sampling_rate: i32) {
-        self.d_clock = (psg_clock_value & 0x7ffffff) as f32 / 16_f32 / sampling_rate as f32;
+        self.d_clock = (psg_clock_value & 0x07ff_ffff) as f32 / 16_f32 / sampling_rate as f32;
 
         self.mute(MuteValues::AllOn);
         self.config(FeedbackPatterns::FbSegavdp, SrWidths::SrwSegavdp);
@@ -150,14 +151,14 @@ impl SN76489 {
     }
 
     pub fn write(&mut self, data: u8) {
-        let data : u16 = data as u16;
+        let data : u16 = u16::from(data);
         if data & 0x80 != 0 {
-            self.latched_register = ((data >> 4) & 0x07) as i32;
+            self.latched_register = i32::from((data >> 4) & 0x07);
             self.registers[self.latched_register as usize] =
                 // zero low 4 bits
                 (self.registers[self.latched_register as usize] & 0x3f0)
                 // and replace with data
-                | (data & 0xf) as i32;
+                | i32::from(data & 0xf);
         } else {
             // Data byte %0 - dddddd
             if (self.latched_register % 2) == 0 && (self.latched_register < 5) {
@@ -166,11 +167,11 @@ impl SN76489 {
                     // zero high 6 bits
                     (self.registers[self.latched_register as usize] & 0x00f)
                     // and replace with data
-                    | ((data & 0x3f) << 4) as i32;
+                    | i32::from((data & 0x3f) << 4);
             } else {
                 // Other register
                 // Replace with data
-                self.registers[self.latched_register as usize] = (data & 0x0f) as i32;
+                self.registers[self.latched_register as usize] = i32::from(data & 0x0f);
             }
         }
 

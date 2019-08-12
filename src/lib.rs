@@ -81,7 +81,7 @@ impl VgmPlay {
         self.vgmpos = 0x34; self.vgmpos = (0x34 + self.get_vgm_u32()) as usize;
 
         if clock_sn76489 == 0 {
-            clock_sn76489 = 3579545;
+            clock_sn76489 = 3_579_545;
         }
 
         self.sn76489.init(clock_sn76489 as i32, sample_rate as i32);
@@ -127,14 +127,14 @@ impl VgmPlay {
     }
 
     fn get_vgm_u16(&mut self) -> u16 {
-        self.get_vgm_u8() as u16 + ((self.get_vgm_u8() as u16) << 8)
+        u16::from(self.get_vgm_u8()) + (u16::from(self.get_vgm_u8()) << 8)
     }
 
     fn get_vgm_u32(&mut self) -> u32 {
-        self.get_vgm_u8() as u32
-            + ((self.get_vgm_u8() as u32) << 8)
-            + ((self.get_vgm_u8() as u32) << 16)
-            + ((self.get_vgm_u8() as u32) << 24)
+        u32::from(self.get_vgm_u8())
+            + (u32::from(self.get_vgm_u8()) << 8)
+            + (u32::from(self.get_vgm_u8()) << 16)
+            + (u32::from(self.get_vgm_u8()) << 24)
     }
 
     fn parse_vgm(&mut self) -> u16 {
