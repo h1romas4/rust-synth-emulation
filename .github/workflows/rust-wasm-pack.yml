@@ -1,0 +1,26 @@
+name: Rust
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+
+    - name: Install wasm32-unknown-unknown
+      uses: actions-rs/toolchain@v1
+      with:
+          toolchain: stable
+          target: wasm32-unknown-unknown
+          override: true
+
+    - name: Install wasm-pack
+      run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+
+    - name: Build
+      run: |
+        wasm-pack build
+        cd www
+        npm install
+        npm build
