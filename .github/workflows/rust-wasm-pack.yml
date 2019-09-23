@@ -1,4 +1,4 @@
-name: Rust/wasm CI
+name: Rust-wasm CI
 
 on: [push]
 
