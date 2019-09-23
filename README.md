@@ -8,6 +8,8 @@ PSG(SN76489) VGM player by Rust
 
 ## Build
 
+![](https://github.com/h1romas4/rust-synth-emulation/workflows/Rust-wasm%20CI/badge.svg)
+
 Rust and [wasm-pack](https://rustwasm.github.io/wasm-pack) setup
 
 ```
