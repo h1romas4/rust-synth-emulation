@@ -13,6 +13,7 @@
         "webpack": "^4.39.1",
         "webpack-cli": "^3.3.6",
         "webpack-dev-server": "^3.8.0",
-        "copy-webpack-plugin": "^5.0.4"
+        "copy-webpack-plugin": "^5.0.4",
+        "eslint": "^6.5.1"
     }
 }
