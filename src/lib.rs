@@ -1,7 +1,9 @@
 mod sn76489;
+mod ym3438;
 
 use wasm_bindgen::prelude::*;
 use sn76489::SN76489;
+use ym3438::YM3438;
 
 const MAX_VGM_SIZE: usize = 65536;
 const MAX_SAMPLING_SIZE: usize = 4096;
@@ -19,6 +21,7 @@ macro_rules! console_log {
 
 #[wasm_bindgen]
 pub struct VgmPlay {
+    ym3438: YM3438,
     sn76489: SN76489,
     vgmpos: usize,
     remain_frame_size: usize,
@@ -43,6 +46,7 @@ impl VgmPlay {
         set_panic_hook();
 
         VgmPlay {
+            ym3438: YM3438::default(),
             sn76489: SN76489::default(),
             vgmpos: 0,
             remain_frame_size: 0,
@@ -83,6 +87,8 @@ impl VgmPlay {
         if clock_sn76489 == 0 {
             clock_sn76489 = 3_579_545;
         }
+
+        self.ym3438.reset();
 
         self.sn76489.init(clock_sn76489 as i32, sample_rate as i32);
         self.sn76489.reset();

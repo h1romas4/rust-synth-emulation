@@ -1,8 +1,12 @@
-// Rust SN76489 emulation
-//  Hiromasa Tanaka <h1romas4@gmail.com>
-//
-// converted from:
-//  https://github.com/vgmrips/vgmplay/blob/master/VGMPlay/chips/sn76489.c
+/**
+ * Rust SN76489 emulation
+ *  Hiromasa Tanaka <h1romas4@gmail.com>
+ *  https://github.com/h1romas4/rust-synth-emulation
+ *
+ * Converted from:
+ *  SN76489 emulation by Maxim
+ *  https://github.com/vgmrips/vgmplay/blob/master/VGMPlay/chips/sn76489.c
+ */
 
 /*
 	SN76489 emulation
