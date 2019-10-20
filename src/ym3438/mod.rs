@@ -1725,13 +1725,13 @@ impl YM3438 {
         self.samplecnt += 1 << RSM_FRAC;
     }
 
-    pub fn opn2_generate_stream(&mut self, buffer: (&mut [f32], &mut [f32]), numsamples: u32) {
+    pub fn opn2_generate_stream(&mut self, buffer: (&mut [f32], &mut [f32]), numsamples: u32, buffer_pos: usize) {
         let mut sample: [i32; 2] = [0; 2];
 
         for i in 0..numsamples {
             self.opn2_generate_resampled(&mut sample);
-            buffer.0[i as usize] = sample[0] as f32;
-            buffer.1[i as usize] = sample[1] as f32;
+            buffer.0[buffer_pos + i as usize] = sample[0] as f32;
+            buffer.1[buffer_pos + i as usize] = sample[1] as f32;
         }
     }
 }

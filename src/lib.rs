@@ -145,6 +145,7 @@ impl VgmPlay {
 
     fn parse_vgm(&mut self) -> u16 {
         let command: u8;
+        let reg: u8;
         let dat: u8;
         let mut wait: u16 = 0;
 
@@ -153,6 +154,12 @@ impl VgmPlay {
             0x50 => {
                 dat = self.get_vgm_u8();
                 self.sn76489.write(dat);
+            }
+            0x52 | 0x53 => {
+                reg = self.get_vgm_u8();
+                dat = self.get_vgm_u8();
+                self.ym3438.opn2_write_bufferd((0 + ((command & 1) << 1)) as u32, reg);
+                self.ym3438.opn2_write_bufferd((1 + ((command & 1) << 1)) as u32, dat);
             }
             0x61 => {
                 wait = self.get_vgm_u16();
