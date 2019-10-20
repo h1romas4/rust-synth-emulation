@@ -43,24 +43,12 @@ pub enum YM3438Mode {
     ReadMode = 0x02     /* Enables status read on any port (TeraDrive, MD1 VA7, MD2, etc) */
 }
 
-impl Default for YM3438Mode {
-    fn default() -> Self {
-        YM3438Mode::YM2612
-    }
-}
-
 #[derive(PartialEq, Copy, Clone)]
 enum EgNum {
     Attack = 0,
     Decay = 1,
     Sustain = 2,
     Release = 3
-}
-
-impl Default for EgNum {
-    fn default() -> Self {
-        EgNum::Attack
-    }
 }
 
 /* logsin table */
@@ -248,7 +236,6 @@ const FM_ALGORITHM: [[[u32; 8]; 6]; 4]  = [
 ];
 
 #[allow(dead_code)]
-#[derive(Default)]
 pub struct YM3438 {
     chip_type: YM3438Mode,
     // Bit32u cycles;
@@ -520,7 +507,57 @@ pub struct YM3438 {
     // Bit8u status;
     status: u8,
     // Bit32u status_time;
-    status_time: u32
+    status_time: u32,
+
+    // from vgmplay
+    // Bit32u mute[7];
+    mute: [u32; 7],
+    // Bit32s rateratio;
+    rateratio: i32,
+    // Bit32s samplecnt;
+    samplecnt: i32,
+    // Bit32s oldsamples[2];
+    oldsamples: [i32; 2],
+    // Bit32s samples[2];
+    samples: [i32; 2],
+
+    // Bit64u writebuf_samplecnt;
+    writebuf_samplecnt: u64,
+    // Bit32u writebuf_cur;
+    writebuf_cur: usize,
+    // Bit32u writebuf_last;
+    writebuf_last: usize,
+    // Bit64u writebuf_lasttime;
+    writebuf_lasttime: usize,
+    // opn2_writebuf writebuf[OPN_WRITEBUF_SIZE];
+    writebuf: [Opn2WriteBuf; OPN_WRITEBUF_SIZE]
+}
+
+impl Default for YM3438 {
+    fn default() -> YM3438 {
+        unsafe { std::mem::zeroed() }
+    }
+}
+
+const USE_FILTER: u32 = 0;
+const OUTPUT_FACTOR: i32 = 11;
+const OUTPUT_FACTOR_F: i32 = 12;
+const FILTER_CUTOFF: f32 = 0.512331301282628; // 5894Hz  single pole IIR low pass
+const FILTER_CUTOFF_I: f32 = (1_f32 - FILTER_CUTOFF);
+
+const RSM_FRAC: i32 = 10;
+
+const OPN_WRITEBUF_SIZE: usize = 2048;
+const OPN_WRITEBUF_DELAY: u32 = 15;
+
+#[derive(Default)]
+struct Opn2WriteBuf {
+    // Bit64u time;
+    time: u32,
+    // Bit8u port;
+    port: u8,
+    // Bit8u data;
+    data: u8
 }
 
 #[allow(dead_code)]
@@ -1376,6 +1413,11 @@ impl YM3438 {
             self.pan_l[i] = 1;
             self.pan_r[i] = 1;
         }
+
+        self.chip_type = YM3438Mode::YM2612;
+        for i in 0..24 {
+            self.eg_state[i] = EgNum::Attack;
+        }
     }
 
     pub fn opn2_set_chip_type(&mut self, chip_type: YM3438Mode) {
@@ -1569,5 +1611,127 @@ impl YM3438 {
             return self.status;
         }
         return 0;
+    }
+
+    ///
+    /// from vgmplay
+    ///  https://github.com/vgmrips/vgmplay/blob/master/VGMPlay/chips/ym3438.c#L1433
+    ///
+
+    pub fn opn2_write_bufferd(&mut self, port: u32, data: u8) {
+        let mut time1: u64;
+        let time2: u64;
+        let mut buffer: [i16; 2] = [0; 2];
+        let mut skip: u64;
+
+        if self.writebuf[self.writebuf_last].port & 0x04 != 0 {
+            self.opn2_write((self.writebuf[self.writebuf_last].port & 0x03) as u32, self.writebuf[self.writebuf_last].data);
+
+            self.writebuf_cur = (self.writebuf_last + 1) % OPN_WRITEBUF_SIZE;
+            skip = self.writebuf[self.writebuf_last].time as u64 - self.writebuf_samplecnt;
+            self.writebuf_samplecnt = self.writebuf[self.writebuf_last].time as u64;
+            while skip > 0 {
+                self.opn2_clock(&mut buffer);
+                skip -= 1;
+            }
+        }
+
+        self.writebuf[self.writebuf_last].port = ((port & 0x03) | 0x04) as u8;
+        self.writebuf[self.writebuf_last].data = data;
+        time1 = (self.writebuf_lasttime + OPN_WRITEBUF_DELAY as usize) as u64;
+        time2 = self.writebuf_samplecnt;
+
+        if time1 < time2 {
+            time1 = time2;
+        }
+
+        self.writebuf[self.writebuf_last].time = time1 as u32;
+        self.writebuf_lasttime = time1 as usize;
+        self.writebuf_last = (self.writebuf_last + 1) % OPN_WRITEBUF_SIZE;
+    }
+
+    pub fn opn2_generate_resampled(&mut self, buf: &mut [i32; 2]) {
+        let mut buffer: [i16; 2] = [0; 2];
+        let mut mute: u32;
+
+        while self.samplecnt >= self.rateratio {
+            self.oldsamples[0] = self.samples[0];
+            self.oldsamples[1] = self.samples[1];
+            self.samples[0] = 0;
+            self.samples[1] = 0;
+            for _ in 0..24 {
+                match self.cycles >> 2 {
+                    0 => {
+                        // Ch 2
+                        mute = self.mute[1];
+                    }
+                    1 => {
+                        // Ch 6, DAC
+                        mute = self.mute[(5 + self.dacen) as usize];
+                    }
+                    2 => {
+                        // Ch 4
+                        mute = self.mute[3];
+                    }
+                    3 => {
+                        // Ch 1
+                        mute = self.mute[0];
+                    }
+                    4 => {
+                        // Ch 5
+                        mute = self.mute[4];
+                    }
+                    5 => {
+                        // Ch 3
+                        mute = self.mute[2];
+                    }
+                    _ => {
+                        mute = 0;
+                    }
+                }
+                self.opn2_clock(&mut buffer);
+                if mute == 0 {
+                    self.samples[0] += buffer[0] as i32;
+                    self.samples[1] += buffer[1] as i32;
+                }
+
+                while self.writebuf[self.writebuf_cur].time as u64 <= self.writebuf_samplecnt {
+                    if (self.writebuf[self.writebuf_cur].port & 0x04) == 0 {
+                        break;
+                    }
+                    self.writebuf[self.writebuf_cur].port &= 0x03;
+                    self.opn2_write((self.writebuf[self.writebuf_cur].port & 0x03) as u32, self.writebuf[self.writebuf_cur].data);
+                    self.writebuf_cur = (self.writebuf_cur + 1) % OPN_WRITEBUF_SIZE;
+                }
+                self.writebuf_samplecnt += 1;
+            }
+
+            if USE_FILTER == 0 {
+                self.samples[0] *= OUTPUT_FACTOR;
+                self.samples[1] *= OUTPUT_FACTOR;
+            } else {
+                self.samples[0] = (self.oldsamples[0] as f32 + FILTER_CUTOFF_I
+                    * (self.samples[0] * OUTPUT_FACTOR_F - self.oldsamples[0]) as f32) as i32;
+                self.samples[1] = (self.oldsamples[1] as f32 + FILTER_CUTOFF_I
+                    * (self.samples[1] * OUTPUT_FACTOR_F - self.oldsamples[1]) as f32) as i32;
+            }
+            self.samplecnt -= self.rateratio;
+        }
+
+        buf[0] = (self.oldsamples[0] * (self.rateratio - self.samplecnt)
+            + self.samples[0] * self.samplecnt) / self.rateratio;
+        buf[1] = (self.oldsamples[1] * (self.rateratio - self.samplecnt)
+            + self.samples[1] * self.samplecnt) / self.rateratio;
+        self.samplecnt += 1 << RSM_FRAC;
+    }
+
+    pub fn opn2_generate_stream(&mut self, buffer: (&mut [f32], &mut [f32]), numsamples: u32) {
+        let mut sample: [i32; 2] = [0; 2];
+
+        for i in 0..numsamples {
+            self.opn2_generate_resampled(&mut sample);
+            buffer.0[i as usize] = sample[0] as f32;
+            buffer.1[i as usize] = sample[1] as f32;
+        }
     }
 }
