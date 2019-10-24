@@ -7,7 +7,7 @@
         "start": "webpack-dev-server"
     },
     "dependencies": {
-        "synth-emulation": "file:../pkg"
+        "wasm-synth-player": "file:../pkg"
     },
     "devDependencies": {
         "webpack": "^4.39.1",

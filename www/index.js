@@ -1,5 +1,5 @@
-import { VgmPlay } from "synth-emulation";
-import { memory } from "synth-emulation/synth_emulation_bg";
+import { WasmVgmPlay } from "wasm-synth-player";
+import { memory } from "wasm-synth-player/wasm_synth_player_bg";
 
 // vgm setting
 const MAX_SAMPLING_BUFFER = 4096;
@@ -9,7 +9,7 @@ const CANVAS_WIDTH = 768;
 const CANVAS_HEIGHT = 576;
 
 // vgm member
-let vgmplay = new VgmPlay();
+let vgmplay = new WasmVgmPlay();
 let vgmdata;
 let sampling_buffer;
 

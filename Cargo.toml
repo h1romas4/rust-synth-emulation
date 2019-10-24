@@ -1,6 +1,6 @@
 [package]
-name = "synth-emulation"
-version = "0.2.0"
+name = "wasm-synth-player"
+version = "0.3.0"
 authors = ["Hiromasa Tanaka <h1romas4@gmail.com>"]
 edition = "2018"
 
@@ -11,6 +11,7 @@ crate-type = ["cdylib", "rlib"]
 default = ["console_error_panic_hook"]
 
 [dependencies]
+synth-emulation = { path = "./synth-emulation" }
 wasm-bindgen = "0.2"
 console_error_panic_hook = { version = "0.1.6", optional = true }
 wee_alloc = { version = "0.4.4", optional = true }
