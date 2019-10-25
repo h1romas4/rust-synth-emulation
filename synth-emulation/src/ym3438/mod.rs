@@ -542,7 +542,7 @@ impl Default for YM3438 {
 const USE_FILTER: u32 = 0;
 const OUTPUT_FACTOR: i32 = 11;
 const OUTPUT_FACTOR_F: i32 = 12;
-const FILTER_CUTOFF: f32 = 0.512331301282628; // 5894Hz  single pole IIR low pass
+const FILTER_CUTOFF: f32 = 0.512_331_3; // 0.512_331_301_282_628; 5894Hz  single pole IIR low pass
 const FILTER_CUTOFF_I: f32 = (1_f32 - FILTER_CUTOFF);
 
 const RSM_FRAC: i32 = 10;
@@ -561,6 +561,8 @@ struct Opn2WriteBuf {
 }
 
 #[allow(dead_code)]
+#[allow(clippy::verbose_bit_mask)]
+#[allow(clippy::nonminimal_bool)]
 impl YM3438 {
     fn opn2_do_io(&mut self) {
         /* Write signal check */
@@ -587,12 +589,12 @@ impl YM3438 {
         /* Update registers */
         if self.write_fm_data != 0 {
             /* Slot */
-            if OP_OFFSET[slot] == (self.address & 0x107) as u32 {
+            if OP_OFFSET[slot] == u32::from(self.address & 0x107) {
                 if self.address & 0x08 != 0 {
                     /* OP2, OP4 */
                     slot += 12;
                 }
-                address = (self.address & 0xf0) as u32;
+                address = u32::from(self.address & 0xf0);
                 match address {
                     0x30 => {
                         /* DT, MULTI */
@@ -638,24 +640,24 @@ impl YM3438 {
             }
 
             /* Channel */
-            if CH_OFFSET[channel] == (self.address & 0x103) as u32 {
-                address = (self.address & 0xfc) as u32;
+            if CH_OFFSET[channel] == u32::from(self.address & 0x103) {
+                address = u32::from(self.address & 0xfc);
                 match address {
                     0xa0 => {
-                        self.fnum[channel] = (self.data as u16 & 0xff) | ((self.reg_a4 as u16 & 0x07) << 8);
+                        self.fnum[channel] = (u16::from(self.data) & 0xff) | ((u16::from(self.reg_a4) & 0x07) << 8);
                         self.block[channel] = (self.reg_a4 >> 3) & 0x07;
-                        self.kcode[channel] = ((self.block[channel] << 2) as u32 | FN_NOTE[(self.fnum[channel] >> 7) as usize]) as u8;
+                        self.kcode[channel] = (u32::from(self.block[channel] << 2) | FN_NOTE[(self.fnum[channel] >> 7) as usize]) as u8;
                     }
                     0xa4 => {
-                        self.reg_a4 = self.data & 0xff;
+                        self.reg_a4 = self.data; // & 0xff;
                     }
                     0xa8 => {
-                        self.fnum_3ch[channel] = (self.data as u16 & 0xff) | ((self.reg_ac as u16 & 0x07) << 8);
+                        self.fnum_3ch[channel] = (u16::from(self.data) & 0xff) | ((u16::from(self.reg_ac) & 0x07) << 8);
                         self.block_3ch[channel] = (self.reg_ac >> 3) & 0x07;
-                        self.kcode_3ch[channel] = ((self.block_3ch[channel] << 2) as u32 | FN_NOTE[(self.fnum_3ch[channel] >> 7) as usize]) as u8;
+                        self.kcode_3ch[channel] = (u32::from(self.block_3ch[channel] << 2) | FN_NOTE[(self.fnum_3ch[channel] >> 7) as usize]) as u8;
                     }
                     0xac => {
-                        self.reg_ac = self.data & 0xff;
+                        self.reg_ac = self.data; // & 0xff;
                     }
                     0xb0 => {
                         self.connect[channel] = self.data & 0x07;
@@ -765,7 +767,7 @@ impl YM3438 {
                             self.mode_test_2c[i] = ((self.write_data >> i) & 0x01) as u8;
                         }
                         self.dacdata &= 0x1fe;
-                        self.dacdata |= self.mode_test_2c[3] as i16;
+                        self.dacdata |= i16::from(self.mode_test_2c[3]);
                         self.eg_custom_timer = if self.mode_test_2c[7] == 0 && self.mode_test_2c[6] != 0 {
                             1
                         } else {
@@ -790,7 +792,7 @@ impl YM3438 {
     fn opn2_phase_calc_increment(&mut self) {
         let chan: usize = self.channel;
         let slot: usize = self.cycles;
-        let mut fnum: u32 = self.pg_fnum as u32;
+        let mut fnum: u32 = u32::from(self.pg_fnum);
         let fnum_h: u32 = fnum >> 4;
         let mut fm: u32;
         let mut basefreq: u32;
@@ -839,12 +841,12 @@ impl YM3438 {
             detune = (PG_DETUNE[((sum_l << 2) | note) as usize] >> (9 - sum_h)) as u8;
         }
         if (dt & 0x04) != 0 {
-            basefreq = basefreq - detune as u32;
+            basefreq -= u32::from(detune);
         } else {
-            basefreq = basefreq + detune as u32;
+            basefreq += u32::from(detune);
         }
         basefreq &= 0x1ffff;
-        self.pg_inc[slot] = (basefreq * self.multi[slot] as u32) >> 1;
+        self.pg_inc[slot] = (basefreq * u32::from(self.multi[slot])) >> 1;
         self.pg_inc[slot] &= 0xfffff;
     }
 
@@ -917,7 +919,7 @@ impl YM3438 {
         let mut ssg_level: i16;
         let mut nextstate: EgNum = self.eg_state[slot];
         let mut inc: i16 = 0;
-        self.eg_read[0] = self.eg_read_inc as u32;
+        self.eg_read[0] = u32::from(self.eg_read_inc);
         self.eg_read_inc = if self.eg_inc > 0 { 1 } else { 0 };
 
         /* Reset phase generator */
@@ -976,7 +978,7 @@ impl YM3438 {
                     }
                 }
                 EgNum::Decay => {
-                    if (level >> 5) == self.eg_sl[1] as i16 {
+                    if (level >> 5) == i16::from(self.eg_sl[1]) {
                         nextstate = EgNum::Sustain;
                     } else if eg_off == 0 && self.eg_inc != 0 {
                         inc = 1 << (self.eg_inc - 1);
@@ -999,7 +1001,7 @@ impl YM3438 {
             }
         }
         if self.eg_kon_csm[slot] != 0 {
-            nextlevel = nextlevel | (self.eg_tl[1] << 3) as i16;
+            nextlevel |= i16::from(self.eg_tl[1] << 3);
         }
 
         /* Envelope off */
@@ -1106,12 +1108,12 @@ impl YM3438 {
         level &= 0x3ff;
 
         /* Apply AM LFO */
-        level += self.eg_lfo_am as u16;
+        level += u16::from(self.eg_lfo_am);
 
         /* Apply TL */
         if !(self.mode_csm != 0 && self.channel == 2 + 1)
         {
-            level += (self.eg_tl[0] << 3) as u16;
+            level += u16::from(self.eg_tl[0] << 3);
         }
         if level > 0x3ff {
             level = 0x3ff;
@@ -1161,13 +1163,11 @@ impl YM3438 {
         mod0 = mod1 + mod2;
         if op == 0 {
             /* Feedback */
-            mod0 = mod0 >> (10 - self.fb[channel]);
+            mod0 >>= 10 - self.fb[channel];
             if self.fb[channel] == 0 {
                 mod0 = 0;
             }
-        }
-        else
-        {
+        } else {
             mod0 >>= 1;
         }
         self.fm_mod[slot] = mod0 as u16;
@@ -1188,7 +1188,7 @@ impl YM3438 {
         let slot: usize = (self.cycles + 18) % 24;
         let channel: usize = self.channel;
         let op: usize = slot / 6;
-        let test_dac: u32 = self.mode_test_2c[5] as u32;
+        let test_dac: u32 = u32::from(self.mode_test_2c[5]);
         let mut acc: i16 = self.ch_acc[channel];
         let mut add: i16 = test_dac as i16;
         let mut sum: i16;
@@ -1217,7 +1217,7 @@ impl YM3438 {
         let cycles: usize = self.cycles;
         let slot: usize = self.cycles;
         let mut channel: usize = self.channel;
-        let test_dac: u32 = self.mode_test_2c[5] as u32;
+        let test_dac: u32 = u32::from(self.mode_test_2c[5]);
         let mut out: i16;
         let mut sign: i16;
         let out_en: u32;
@@ -1226,7 +1226,7 @@ impl YM3438 {
             /* Ch 4,5,6 */
             channel += 1;
         }
-        if (cycles & 3) == 0 {
+        if cycles & 3 == 0 {
             if test_dac == 0 {
                 /* Lock value */
                 self.ch_lock = self.ch_out[channel];
@@ -1298,9 +1298,9 @@ impl YM3438 {
         }
         output = (((EXPROM[((level & 0xff) ^ 0xff) as usize] | 0x400) << 2) >> (level >> 8)) as i16;
         if phase & 0x200 != 0 {
-            output = (!output) ^ (((self.mode_test_21[4] as u16) << 13) as i16) + 1;
+            output = (!output) ^ (((u16::from(self.mode_test_21[4]) << 13) as i16) + 1);
         } else {
-            output = output ^ ((self.mode_test_21[4] as u16) << 13) as i16;
+            output ^= (u16::from(self.mode_test_21[4]) << 13) as i16;
         }
         output <<= 2;
         output >>= 2;
@@ -1457,19 +1457,19 @@ impl YM3438 {
                 self.eg_cycle_stop = 1;
                 self.eg_shift = 0;
                 self.eg_timer_inc |= (self.eg_quotient >> 1) as u8;
-                self.eg_timer = self.eg_timer + self.eg_timer_inc as u16;
+                self.eg_timer += u16::from(self.eg_timer_inc);
                 self.eg_timer_inc = (self.eg_timer >> 12) as u8;
                 self.eg_timer &= 0xfff;
             }
             2 => {
                 self.pg_read = self.pg_phase[21] & 0x3ff;
-                self.eg_read[1] = self.eg_out[0] as u32;
+                self.eg_read[1] = u32::from(self.eg_out[0]);
             }
             13 => {
                 self.eg_cycle = 0;
                 self.eg_cycle_stop = 1;
                 self.eg_shift = 0;
-                self.eg_timer = self.eg_timer + self.eg_timer_inc as u16;
+                self.eg_timer += u16::from(self.eg_timer_inc);
                 self.eg_timer_inc = (self.eg_timer >> 12) as u8;
                 self.eg_timer &= 0xfff;
             }
@@ -1478,8 +1478,8 @@ impl YM3438 {
             }
             _ => { }
         }
-        self.eg_timer &= (!(self.mode_test_21[5] << self.eg_cycle)) as u16;
-        if (((self.eg_timer >> self.eg_cycle) | (self.pin_test_in & self.eg_custom_timer) as u16) & self.eg_cycle_stop as u16) != 0 {
+        self.eg_timer &= u16::from(!(self.mode_test_21[5] << self.eg_cycle));
+        if ((self.eg_timer >> self.eg_cycle) | u16::from(self.pin_test_in & self.eg_custom_timer)) & u16::from(self.eg_cycle_stop) != 0 {
             self.eg_shift = self.eg_cycle;
             self.eg_cycle_stop = 0;
         }
@@ -1555,7 +1555,7 @@ impl YM3438 {
 
     pub fn opn2_write(&mut self, port: u32, data: u8) {
         let port = port & 3;
-        self.write_data = (((port << 7) & 0x100) | data as u32) as u16;
+        self.write_data = (((port << 7) & 0x100) | u32::from(data)) as u16;
         if port & 1 != 0 {
             /* Data */
             self.write_d |= 1;
@@ -1577,7 +1577,7 @@ impl YM3438 {
     }
 
     pub fn opn2_read_irq_pin(&mut self) -> u32 {
-        (self.timer_a_overflow_flag | self.timer_b_overflow_flag) as u32
+        u32::from(self.timer_a_overflow_flag | self.timer_b_overflow_flag)
     }
 
     pub fn opn2_read(&mut self, port: u32) -> u8 {
@@ -1602,15 +1602,15 @@ impl YM3438 {
                      | self.timer_a_overflow_flag;
             }
             if self.chip_type as u32 & YM3438Mode::YM2612 as u32 != 0 {
-                self.status_time = 300000;
+                self.status_time = 300_000;
             } else {
-                self.status_time = 40000000;
+                self.status_time = 40_000_000;
             }
         }
         if self.status_time != 0 {
             return self.status;
         }
-        return 0;
+        0
     }
 
     ///
@@ -1625,11 +1625,11 @@ impl YM3438 {
         let mut skip: u64;
 
         if self.writebuf[self.writebuf_last].port & 0x04 != 0 {
-            self.opn2_write((self.writebuf[self.writebuf_last].port & 0x03) as u32, self.writebuf[self.writebuf_last].data);
+            self.opn2_write(u32::from(self.writebuf[self.writebuf_last].port & 0x03), self.writebuf[self.writebuf_last].data);
 
             self.writebuf_cur = (self.writebuf_last + 1) % OPN_WRITEBUF_SIZE;
-            skip = self.writebuf[self.writebuf_last].time as u64 - self.writebuf_samplecnt;
-            self.writebuf_samplecnt = self.writebuf[self.writebuf_last].time as u64;
+            skip = u64::from(self.writebuf[self.writebuf_last].time) - self.writebuf_samplecnt;
+            self.writebuf_samplecnt = u64::from(self.writebuf[self.writebuf_last].time);
             while skip > 0 {
                 self.opn2_clock(&mut buffer);
                 skip -= 1;
@@ -1691,16 +1691,16 @@ impl YM3438 {
                 }
                 self.opn2_clock(&mut buffer);
                 if mute == 0 {
-                    self.samples[0] += buffer[0] as i32;
-                    self.samples[1] += buffer[1] as i32;
+                    self.samples[0] += i32::from(buffer[0]);
+                    self.samples[1] += i32::from(buffer[1]);
                 }
 
-                while self.writebuf[self.writebuf_cur].time as u64 <= self.writebuf_samplecnt {
+                while u64::from(self.writebuf[self.writebuf_cur].time) <= self.writebuf_samplecnt {
                     if (self.writebuf[self.writebuf_cur].port & 0x04) == 0 {
                         break;
                     }
                     self.writebuf[self.writebuf_cur].port &= 0x03;
-                    self.opn2_write((self.writebuf[self.writebuf_cur].port & 0x03) as u32, self.writebuf[self.writebuf_cur].data);
+                    self.opn2_write(u32::from(self.writebuf[self.writebuf_cur].port & 0x03), self.writebuf[self.writebuf_cur].data);
                     self.writebuf_cur = (self.writebuf_cur + 1) % OPN_WRITEBUF_SIZE;
                 }
                 self.writebuf_samplecnt += 1;
