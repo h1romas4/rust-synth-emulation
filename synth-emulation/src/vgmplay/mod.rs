@@ -77,7 +77,7 @@ impl VgmPlay {
     ///
     /// play
     ///
-    pub fn play(&mut self) -> f32 {
+    pub fn play(&mut self, repeat: bool) -> f32 {
         let mut frame_size: usize;
         let mut update_frame_size: usize;
         let mut buffer_pos: usize;
@@ -87,7 +87,7 @@ impl VgmPlay {
             if self.remain_frame_size > 0 {
                 frame_size = self.remain_frame_size;
             } else {
-                frame_size = self.parse_vgm() as usize;
+                frame_size = self.parse_vgm(repeat) as usize;
             }
             if buffer_pos + frame_size < MAX_SAMPLING_SIZE {
                 update_frame_size = frame_size;
@@ -123,7 +123,7 @@ impl VgmPlay {
             + (u32::from(self.get_vgm_u8()) << 24)
     }
 
-    fn parse_vgm(&mut self) -> u16 {
+    fn parse_vgm(&mut self, repeat: bool) -> u16 {
         let command: u8;
         let reg: u8;
         let dat: u8;
@@ -153,8 +153,10 @@ impl VgmPlay {
             0x66 => {
                 if self.vgm_loop_offset == 0 {
                     self.vgmend = true;
-                } else {
+                } else if repeat {
                     self.vgmpos = self.vgm_loop_offset;
+                } else {
+                    self.vgmend = true;
                 }
             }
             0x70..=0x7f => {
@@ -171,13 +173,47 @@ impl VgmPlay {
     }
 }
 
+///
+/// cargo test -- --nocapture
+///
 #[cfg(test)]
 mod tests {
     use super::VgmPlay;
+    use super::MAX_SAMPLING_SIZE;
+    use std::fs::File;
+    use std::io::Read;
 
     #[test]
-    fn init() {
+    fn sn76489_1() -> Result<(), Box<dyn std::error::Error>> {
+        play("../www/vgm/sn76489.vgm")
+    }
+
+    #[test]
+    fn ym2612_1() -> Result<(), Box<dyn std::error::Error>> {
+        play("../www/vgm/ym2612.vgm")
+    }
+
+    fn play(filepath: &str) -> Result<(), Box<dyn std::error::Error>> {
         let mut vgmplay = VgmPlay::new();
+
+        // load sn76489 vgm file
+        let mut file = File::open(filepath)?;
+        let mut buffer = Vec::new();
+        let _ = file.read_to_end(&mut buffer)?;
+
+        // set vgmdata
+        let vgmdata_ref = vgmplay.get_vgmdata_ref();
+        let mut i: usize = 0;
+        for buf in buffer.iter() {
+            unsafe { *vgmdata_ref.add(i) = *buf; }
+            i += 1;
+        }
+
+        // init & sample
         vgmplay.init(44100_f32);
+        // play
+        while vgmplay.play(false) >= MAX_SAMPLING_SIZE as f32 {}
+
+        Ok(())
     }
 }

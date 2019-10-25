@@ -2,4 +2,5 @@
 target/
 *.vgm
 *.pcm
-!vgmsample.vgm
+!sn76489.vgm
+!ym2612.vgm
