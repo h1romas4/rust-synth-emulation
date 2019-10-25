@@ -170,3 +170,14 @@ impl VgmPlay {
         wait
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::VgmPlay;
+
+    #[test]
+    fn init() {
+        let mut vgmplay = VgmPlay::new();
+        vgmplay.init(44100_f32);
+    }
+}
