@@ -371,7 +371,7 @@ pub struct YM3438 {
     eg_read_inc: u8,
     // /* FM */
     // Bit16s fm_op1[6][2];
-    fm_op1: [[i16; 6]; 2],
+    fm_op1: [[i16; 2]; 6],
     // Bit16s fm_op2[6];
     fm_op2: [i16; 6],
     // Bit16s fm_out[24];
@@ -1296,7 +1296,7 @@ impl YM3438 {
         if level > 0x1fff {
             level = 0x1fff;
         }
-        output = (((EXPROM[((level & 0xff) ^ 0xff) as usize] | 0x400) << 2) >> (level >> 8)) as i16;
+        output = (u32::from((EXPROM[((level & 0xff) ^ 0xff) as usize] | 0x400) << 2) >> (level >> 8)) as i16;
         if phase & 0x200 != 0 {
             output = (!output) ^ (((u16::from(self.mode_test_21[4]) << 13) as i16) + 1);
         } else {
@@ -1478,7 +1478,7 @@ impl YM3438 {
             }
             _ => { }
         }
-        self.eg_timer &= u16::from(!(self.mode_test_21[5] << self.eg_cycle));
+        self.eg_timer &= u16::from(!(u16::from(self.mode_test_21[5]) << self.eg_cycle));
         if ((self.eg_timer >> self.eg_cycle) | u16::from(self.pin_test_in & self.eg_custom_timer)) & u16::from(self.eg_cycle_stop) != 0 {
             self.eg_shift = self.eg_cycle;
             self.eg_cycle_stop = 0;
