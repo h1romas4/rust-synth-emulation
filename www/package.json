@@ -1,7 +1,7 @@
 {
-    "name": "wasm-synth-emuration",
+    "name": "wasm-synth-emurator",
     "version": "0.1.0",
-    "description": "wasm-synth-emuration",
+    "description": "wasm-synth-emurator",
     "scripts": {
         "build": "webpack --config webpack.config.js",
         "start": "webpack-dev-server"
