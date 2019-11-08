@@ -11,7 +11,7 @@ crate-type = ["cdylib", "rlib"]
 default = ["console_error_panic_hook"]
 
 [dependencies]
-synth-emulation = { path = "./synth-emulation" }
+synth-emulator = { path = "./synth-emulator" }
 wasm-bindgen = "0.2"
 console_error_panic_hook = { version = "0.1.6", optional = true }
 wee_alloc = { version = "0.4.4", optional = true }

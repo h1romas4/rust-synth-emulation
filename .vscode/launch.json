@@ -4,21 +4,21 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug unit tests in library 'synth-emulation'",
+            "name": "Debug unit tests in library 'synth-emulator'",
             "cargo": {
                 "args": [
                     "test",
                     "--no-run",
                     "--lib",
-                    "--package=synth-emulation"
+                    "--package=synth-emulator"
                 ],
                 "filter": {
-                    "name": "synth-emulation",
+                    "name": "synth-emulator",
                     "kind": "lib"
                 }
             },
             "args": [],
-            "cwd": "${workspaceFolder}/synth-emulation"
+            "cwd": "${workspaceFolder}/synth-emulator"
         }
     ]
 }
