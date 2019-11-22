@@ -44,7 +44,7 @@ canvas_context.fillText("Click Here", 260, 300);
 /**
  * load vgm data
  */
-fetch('./vgm/vgmsample.vgm')
+fetch('./vgm/sn76489.vgm')
     .then(response => response.arrayBuffer())
     .then(bytes => {
         // create buffer from wasm
