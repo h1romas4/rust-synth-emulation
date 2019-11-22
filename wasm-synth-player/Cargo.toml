@@ -6,12 +6,13 @@ edition = "2018"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
+path = "src/rust/lib.rs"
 
 [features]
 default = ["console_error_panic_hook"]
 
 [dependencies]
-synth-emulator = { path = "./synth-emulator" }
+synth-emulator = { path = "../synth-emulator" }
 wasm-bindgen = "0.2"
 console_error_panic_hook = { version = "0.1.6", optional = true }
 wee_alloc = { version = "0.4.4", optional = true }

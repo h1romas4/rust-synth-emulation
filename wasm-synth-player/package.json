@@ -1,13 +1,9 @@
 {
-    "name": "wasm-synth-emurator",
+    "name": "wasm-synth-player",
     "version": "0.1.0",
-    "description": "wasm-synth-emurator",
-    "scripts": {
-        "build": "webpack --config webpack.config.js",
-        "start": "webpack-dev-server"
-    },
+    "description": "wasm-synth-player",
     "dependencies": {
-        "wasm-synth-player": "file:../pkg"
+        "wasm-synth-player": "file:./pkg"
     },
     "devDependencies": {
         "webpack": "^4.41.2",
@@ -15,5 +11,9 @@
         "webpack-dev-server": "^3.9.0",
         "copy-webpack-plugin": "^5.0.5",
         "eslint": "^6.6.0"
+    },
+    "scripts": {
+        "build": "webpack --config webpack.config.js",
+        "start": "webpack-dev-server"
     }
 }

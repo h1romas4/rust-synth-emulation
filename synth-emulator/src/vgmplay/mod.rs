@@ -185,12 +185,12 @@ mod tests {
 
     #[test]
     fn sn76489_1() -> Result<(), Box<dyn std::error::Error>> {
-        play("../www/vgm/sn76489.vgm")
+        play("../docs/vgm/sn76489.vgm")
     }
 
     #[test]
     fn ym2612_1() -> Result<(), Box<dyn std::error::Error>> {
-        play("../www/vgm/ym2612.vgm")
+        play("../docs/vgm/ym2612.vgm")
     }
 
     fn play(filepath: &str) -> Result<(), Box<dyn std::error::Error>> {

@@ -1,4 +1,7 @@
+node_modules/
 target/
+pkg/
+dist/
 *.vgm
 *.pcm
 !sn76489.vgm
