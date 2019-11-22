@@ -14,6 +14,7 @@
         "babel-loader": "^8.0.6",
         "@babel/core": "^7.6.4",
         "@babel/preset-env": "^7.6.3",
+        "babel-eslint": "^10.0.3",
         "copy-webpack-plugin": "^5.0.5",
         "eslint": "^6.6.0",
         "htmlhint": "^0.11.0"

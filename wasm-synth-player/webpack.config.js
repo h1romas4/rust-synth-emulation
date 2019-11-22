@@ -4,7 +4,7 @@ const path = require('path');
 module.exports = {
     entry: "./src/js/bootstrap.js",
     output: {
-        path: path.resolve(__dirname, "../dist"),
+        path: path.resolve(__dirname, "../dist"), // eslint-disable-line
         filename: "bootstrap.js",
     },
     mode: "development",
