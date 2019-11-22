@@ -8,6 +8,9 @@
  *  https://github.com/vgmrips/vgmplay/blob/master/VGMPlay/chips/sn76489.c
  */
 
+/**
+ * Original SN76489 emulation Copyright
+ */
 /*
 	SN76489 emulation
 	by Maxim in 2001 and 2002

@@ -9,6 +9,9 @@
  *  rev. a67c34dfa152805bc2e752091e257a98e80ff2ae
  */
 
+/**
+ * Original Nuked-OPN2 Copyright
+ */
 /*
  * Copyright (C) 2017-2018 Alexey Khokholov (Nuke.YKT)
  *
