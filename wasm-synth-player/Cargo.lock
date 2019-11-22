@@ -190,7 +190,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "wasm-synth-player"
+name = "wasm-vgm-play"
 version = "0.3.0"
 dependencies = [
  "console_error_panic_hook 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",

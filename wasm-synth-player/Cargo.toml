@@ -1,5 +1,5 @@
 [package]
-name = "wasm-synth-player"
+name = "wasm-vgm-play"
 version = "0.3.0"
 authors = ["Hiromasa Tanaka <h1romas4@gmail.com>"]
 edition = "2018"
