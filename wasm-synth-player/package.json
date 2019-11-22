@@ -2,6 +2,7 @@
     "name": "wasm-synth-player",
     "version": "0.1.0",
     "description": "wasm-synth-player",
+    "license": "GPL-2.0-or-later",
     "dependencies": {
         "wasm-synth-player": "file:./pkg"
     },
