@@ -4,6 +4,7 @@
     "recommendations": [
         "rust-lang.rust",
         "vadimcn.vscode-lldb",
+        "serayuzgur.crates",
         "dbaeumer.vscode-eslint",
         "mkaufman.HTMLHint",
         "EditorConfig.EditorConfig"
