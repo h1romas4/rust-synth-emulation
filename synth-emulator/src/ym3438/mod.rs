@@ -1404,7 +1404,8 @@ impl YM3438 {
         }
     }
 
-    pub fn reset(&mut self) {
+    pub fn reset(&mut self, clock: u32, sample_rate: u32) {
+        let rateratio: i32 = self.rateratio;
         for i in 0..24 {
             self.eg_out[i] = 0x3ff;
             self.eg_level[i] = 0x3ff;
@@ -1419,6 +1420,12 @@ impl YM3438 {
         self.chip_type = YM3438Mode::YM2612;
         for i in 0..24 {
             self.eg_state[i] = EgNum::Attack;
+        }
+
+        if sample_rate != 0 {
+            self.rateratio = (((144 * sample_rate) << RSM_FRAC) / clock) as i32;
+        } else {
+            self.rateratio = rateratio;
         }
     }
 
@@ -1626,7 +1633,7 @@ impl YM3438 {
         let mut buffer: [i16; 2] = [0; 2];
         let mut skip: u64;
 
-        if self.writebuf[self.writebuf_last].port & 0x04 != 0 {
+        if (self.writebuf[self.writebuf_last].port & 0x04) != 0 {
             self.opn2_write(u32::from(self.writebuf[self.writebuf_last].port & 0x03), self.writebuf[self.writebuf_last].data);
 
             self.writebuf_cur = (self.writebuf_last + 1) % OPN_WRITEBUF_SIZE;

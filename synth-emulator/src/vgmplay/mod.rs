@@ -59,16 +59,21 @@ impl VgmPlay {
     ///
     pub fn init(&mut self, sample_rate: f32) {
         let mut clock_sn76489 : u32;
+        let mut clock_ym2612 : u32;
 
         self.vgmpos = 0x0c; clock_sn76489 = self.get_vgm_u32();
+        self.vgmpos = 0x2C; clock_ym2612 = self.get_vgm_u32();
         self.vgmpos = 0x1c; self.vgm_loop_offset = (0x1c + self.get_vgm_u32()) as usize;
         self.vgmpos = 0x34; self.vgmpos = (0x34 + self.get_vgm_u32()) as usize;
 
         if clock_sn76489 == 0 {
             clock_sn76489 = 3_579_545;
         }
+        if clock_ym2612 == 0 {
+            clock_ym2612 = 7_670_453;
+        }
 
-        self.ym3438.reset();
+        self.ym3438.reset(clock_ym2612, sample_rate as u32);
 
         self.sn76489.init(clock_sn76489 as i32, sample_rate as i32);
         self.sn76489.reset();
