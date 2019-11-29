@@ -12,7 +12,9 @@ pub struct VgmPlay {
     vgm_loop_offset: usize,
     vgmend: bool,
     vgmdata: [u8; MAX_VGM_SIZE],
-    sampling: [f32; MAX_SAMPLING_SIZE]
+    sn_sampling: [f32; MAX_SAMPLING_SIZE],
+    ym_sampling_r: [f32; MAX_SAMPLING_SIZE],
+    ym_sampling_l: [f32; MAX_SAMPLING_SIZE]
 }
 
 impl VgmPlay {
@@ -33,7 +35,9 @@ impl VgmPlay {
             vgm_loop_offset: 0,
             vgmend: false,
             vgmdata: [0; MAX_VGM_SIZE],
-            sampling: [0_f32; MAX_SAMPLING_SIZE]
+            sn_sampling: [0_f32; MAX_SAMPLING_SIZE],
+            ym_sampling_r: [0_f32; MAX_SAMPLING_SIZE],
+            ym_sampling_l: [0_f32; MAX_SAMPLING_SIZE],
         }
     }
 
@@ -48,7 +52,7 @@ impl VgmPlay {
     /// Return sampling buffer referance.
     ///
     pub fn get_sampling_ref(&mut self) -> *mut f32 {
-        self.sampling.as_mut_ptr()
+        self.sn_sampling.as_mut_ptr()
     }
 
     ///
@@ -99,7 +103,8 @@ impl VgmPlay {
             } else {
                 update_frame_size = MAX_SAMPLING_SIZE - buffer_pos;
             }
-            self.sn76489.update(&mut self.sampling, update_frame_size, buffer_pos);
+            self.sn76489.update(&mut self.sn_sampling, update_frame_size, buffer_pos);
+            self.ym3438.opn2_generate_stream(&mut self.ym_sampling_r, &mut self.ym_sampling_l, update_frame_size, buffer_pos);
             if self.remain_frame_size > 0 {
                 self.remain_frame_size -= update_frame_size;
             }
