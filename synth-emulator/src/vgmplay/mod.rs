@@ -143,8 +143,9 @@ impl VgmPlay {
             0x52 | 0x53 => {
                 reg = self.get_vgm_u8();
                 dat = self.get_vgm_u8();
-                self.ym3438.opn2_write_bufferd(u32::from((command & 1) << 1), reg);
-                self.ym3438.opn2_write_bufferd(u32::from(1 + ((command & 1) << 1)), dat);
+                let port = u32::from((command & 0x01) << 1);
+                self.ym3438.opn2_write_bufferd(port, reg);
+                self.ym3438.opn2_write_bufferd(port + 1, dat);
             }
             0x61 => {
                 wait = self.get_vgm_u16();
