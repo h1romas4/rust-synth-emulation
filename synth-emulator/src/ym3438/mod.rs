@@ -202,7 +202,6 @@ const LFO_CYCLES: [u32; 8]  = [
 ];
 
 /* FM algorithm */
-// static const Bit32u fm_algorithm[4][6][8] = {
 const FM_ALGORITHM: [[[u32; 8]; 6]; 4]  = [
     [
         [ 1, 1, 1, 1, 1, 1, 1, 1 ], /* OP1_0         */
@@ -556,7 +555,7 @@ const OPN_WRITEBUF_DELAY: u32 = 15;
 #[derive(Default)]
 struct Opn2WriteBuf {
     // Bit64u time;
-    time: u32,
+    time: u64,
     // Bit8u port;
     port: u8,
     // Bit8u data;
@@ -735,7 +734,7 @@ impl YM3438 {
                     0x27 => {
                         /* CSM, Timer control */
                         self.mode_ch3 = ((self.write_data & 0xc0) >> 6) as u8;
-                        self.mode_csm = (self.mode_ch3 == 2) as u8;
+                        self.mode_csm = if self.mode_ch3 == 2 { 1 } else { 0 };
                         self.timer_a_load = (self.write_data & 0x01) as u8;
                         self.timer_a_enable = ((self.write_data >> 2) & 0x01) as u8;
                         self.timer_a_reset = ((self.write_data >> 4) & 0x01) as u8;
@@ -1648,7 +1647,7 @@ impl YM3438 {
             time1 = time2;
         }
 
-        self.writebuf[self.writebuf_last].time = time1 as u32;
+        self.writebuf[self.writebuf_last].time = time1;
         self.writebuf_lasttime = time1 as usize;
         self.writebuf_last = (self.writebuf_last + 1) % OPN_WRITEBUF_SIZE;
     }
@@ -1703,7 +1702,7 @@ impl YM3438 {
                         break;
                     }
                     self.writebuf[self.writebuf_cur].port &= 0x03;
-                    self.opn2_write(u32::from(self.writebuf[self.writebuf_cur].port & 0x03), self.writebuf[self.writebuf_cur].data);
+                    self.opn2_write(u32::from(self.writebuf[self.writebuf_cur].port), self.writebuf[self.writebuf_cur].data);
                     self.writebuf_cur = (self.writebuf_cur + 1) % OPN_WRITEBUF_SIZE;
                 }
                 self.writebuf_samplecnt += 1;
