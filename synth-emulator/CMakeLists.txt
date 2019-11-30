@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.0)
 include(./cmake/macros.cmake)
 project(vgmplay C CXX)
 
-header_directories(./src/main/c)
+header_directories(./src/c)
 
 add_source_files(
     ./src/c/panning.c
