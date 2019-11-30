@@ -575,7 +575,7 @@ impl YM3438 {
         /* Busy counter */
         self.busy = self.write_busy;
         self.write_busy_cnt += self.write_busy;
-        self.write_busy = if self.write_busy != 0 && (self.write_busy_cnt >> 5) == 0 || self.write_d_en != 0 {
+        self.write_busy = if (self.write_busy != 0 && (self.write_busy_cnt >> 5) == 0) || self.write_d_en != 0 {
             1
         } else {
             0
@@ -1487,7 +1487,7 @@ impl YM3438 {
             }
             _ => { }
         }
-        self.eg_timer &= u16::from(!(u16::from(self.mode_test_21[5]) << self.eg_cycle));
+        self.eg_timer &= !(u16::from(self.mode_test_21[5]) << self.eg_cycle);
         if ((self.eg_timer >> self.eg_cycle) | u16::from(self.pin_test_in & self.eg_custom_timer)) & u16::from(self.eg_cycle_stop) != 0 {
             self.eg_shift = self.eg_cycle;
             self.eg_cycle_stop = 0;
