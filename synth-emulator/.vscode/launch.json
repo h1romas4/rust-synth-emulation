@@ -7,6 +7,14 @@
         {
             "type": "lldb",
             "request": "launch",
+            "name": "Debug original 'csynth-emulator'",
+            "program": "${workspaceFolder}/build/bin/vgmplay",
+            "args": [],
+            "cwd": "${workspaceFolder}/build"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
             "name": "Debug unit tests in library 'synth-emulator'",
             "cargo": {
                 "args": [

@@ -1,4 +1,6 @@
 cmake_minimum_required(VERSION 3.0)
+set(CMAKE_C_COMPILER "/usr/bin/clang" CACHE string "clang compiler" FORCE)
+set(CMAKE_CXX_COMPILER "/usr/bin/clang++" CACHE string "clang++ compiler" FORCE)
 
 include(./cmake/macros.cmake)
 project(vgmplay C CXX)
@@ -14,6 +16,7 @@ add_source_files(
 
 add_compile_flags(C
     -std=gnu11
+    -g
 )
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ./bin)
