@@ -3,3 +3,6 @@ name = "synth-emulator"
 version = "0.3.0"
 authors = ["Hiromasa Tanaka <h1romas4@gmail.com>"]
 edition = "2018"
+
+[lib]
+path = "src/rust/lib.rs"
