@@ -797,7 +797,7 @@ impl YM3438 {
         let mut fnum: u32 = u32::from(self.pg_fnum);
         let fnum_h: u32 = fnum >> 4;
         let mut fm: u32;
-        let mut basefreq: u32;
+        let mut basefreq: i32;
         let lfo: u8 = self.lfo_pm;
         let mut lfo_l: u8 = lfo & 0x0f;
         let pms: u8 = self.pms[chan];
@@ -828,7 +828,7 @@ impl YM3438 {
         }
         fnum &= 0xfff;
 
-        basefreq = (fnum << self.pg_block) >> 2;
+        basefreq = ((fnum << self.pg_block) >> 2) as i32;
 
         /* Apply detune */
         if dt_l != 0 {
@@ -843,12 +843,12 @@ impl YM3438 {
             detune = (PG_DETUNE[((sum_l << 2) | note) as usize] >> (9 - sum_h)) as u8;
         }
         if (dt & 0x04) != 0 {
-            basefreq -= u32::from(detune);
+            basefreq -= i32::from(detune);
         } else {
-            basefreq += u32::from(detune);
+            basefreq += i32::from(detune);
         }
         basefreq &= 0x1ffff;
-        self.pg_inc[slot] = (basefreq * u32::from(self.multi[slot])) >> 1;
+        self.pg_inc[slot] = (basefreq as u32 * u32::from(self.multi[slot])) >> 1;
         self.pg_inc[slot] &= 0xfffff;
     }
 
@@ -1282,7 +1282,7 @@ impl YM3438 {
     fn opn2_fm_generate(&mut self) {
         let slot: usize = (self.cycles + 19) % 24;
         /* Calculate phase */
-        let phase: u16 = (self.fm_mod[slot] + (self.pg_phase[slot] >> 10) as u16) & 0x3ff;
+        let phase: u16 = ((u32::from(self.fm_mod[slot]) + (self.pg_phase[slot] >> 10)) & 0x3ff) as u16;
         let quarter: usize;
         let mut level: u16;
         let mut output: i16;
