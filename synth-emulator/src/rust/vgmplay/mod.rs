@@ -104,7 +104,7 @@ impl VgmPlay {
                 update_frame_size = MAX_SAMPLING_SIZE - buffer_pos;
             }
             self.sn76489.update(&mut self.sn_sampling, update_frame_size, buffer_pos);
-            self.ym3438.opn2_generate_stream(&mut self.ym_sampling_r, &mut self.ym_sampling_l, update_frame_size, buffer_pos);
+            self.ym3438.opn2_generate_stream(&mut self.ym_sampling_l, &mut self.ym_sampling_r, update_frame_size, buffer_pos);
             if self.remain_frame_size > 0 {
                 self.remain_frame_size -= update_frame_size;
             }
