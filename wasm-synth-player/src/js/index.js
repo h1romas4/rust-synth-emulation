@@ -1,5 +1,5 @@
-import { WasmVgmPlay } from "wasm-vgm-play";
-import { memory } from "wasm-vgm-play/wasm_vgm_play_bg";
+import { WasmVgmPlay } from "wasm-vgm-player";
+import { memory } from "wasm-vgm-player/wasm_vgm_player_bg";
 
 // vgm setting
 const MAX_SAMPLING_BUFFER = 4096;

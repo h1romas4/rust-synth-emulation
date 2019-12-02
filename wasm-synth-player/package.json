@@ -4,7 +4,7 @@
     "description": "wasm-synth-player",
     "license": "GPL-2.0-or-later",
     "dependencies": {
-        "wasm-vgm-play": "file:./pkg"
+        "wasm-vgm-player": "file:./pkg"
     },
     "devDependencies": {
         "webpack": "^4.41.2",
