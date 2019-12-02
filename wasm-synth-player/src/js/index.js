@@ -44,7 +44,7 @@ canvas_context.fillText("Click Here", 260, 300);
 /**
  * load vgm data
  */
-fetch('./sn76489.vgm')
+fetch('./vgm/sn76489.vgm')
     .then(response => response.arrayBuffer())
     .then(bytes => {
         // create buffer from wasm
@@ -95,7 +95,6 @@ let draw = function() {
     canvas_context.strokeStyle = 'rgb(0, 0, 255)';
 
     var width = CANVAS_WIDTH * 1.0 / audio_analyser_buffer_length;
-    var x = 0;
 
     for(var i = 0; i < audio_analyser_buffer_length; i++) {
         var v = audio_analyser_buffer[i] / 255;
