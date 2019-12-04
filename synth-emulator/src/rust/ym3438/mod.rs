@@ -1725,8 +1725,24 @@ impl YM3438 {
 
         for i in 0..numsamples {
             self.opn2_generate_resampled(&mut sample);
-            buffer_l[buffer_pos + i as usize] = sample[0] as f32;
-            buffer_r[buffer_pos + i as usize] = sample[1] as f32;
+            buffer_l[buffer_pos + i as usize] = self.convert_sample_i2f(sample[0]);
+            buffer_r[buffer_pos + i as usize] = self.convert_sample_i2f(sample[1]);
         }
+    }
+
+    fn convert_sample_i2f(&self, i32_sample: i32) -> f32 {
+        let mut f32_sample: f32;
+        if i32_sample < 0 {
+            f32_sample = i32_sample as f32 / 32768_f32;
+        } else {
+            f32_sample = i32_sample as f32 / 32767_f32;
+        }
+        if f32_sample > 1_f32 {
+            f32_sample = 1_f32;
+        }
+        if f32_sample < -1_f32 {
+            f32_sample = -1_f32;
+        }
+        f32_sample
     }
 }
