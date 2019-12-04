@@ -21,9 +21,8 @@ Compile
 
 ```
 git clone git@github.com:h1romas4/rust-synth-emulation.git
-cd rust-synth-emulation
+cd wasm-synth-player
 wasm-pack build
-cd www
 npm install
 npm run start
 ```
