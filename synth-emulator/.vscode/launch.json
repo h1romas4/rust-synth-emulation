@@ -7,7 +7,7 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug original 'csynth-emulator'",
+            "name": "Debug original version 'csynth-emulator'",
             "program": "${workspaceFolder}/build/bin/vgmplay",
             "args": [],
             "cwd": "${workspaceFolder}/build"
@@ -15,7 +15,7 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug unit tests in library 'synth-emulator'",
+            "name": "Debug Rust version 'synth-emulator'",
             "cargo": {
                 "args": [
                     "test",
