@@ -165,6 +165,7 @@ int main(void)
 
     ym3438 = (ym3438_t *)malloc(sizeof(ym3438_t));
     OPN2_Reset(ym3438, SAMPLING_RATE, clock_ym2612);
+    OPN2_SetChipType(ym3438_mode_ym2612);
 
     // malloc sound buffer
     int **buflr;
