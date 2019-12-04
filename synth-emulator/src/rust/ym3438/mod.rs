@@ -1109,7 +1109,7 @@ impl YM3438 {
         /* Apply TL */
         if !(self.mode_csm != 0 && self.channel == 2 + 1)
         {
-            level += u16::from(self.eg_tl[0] << 3);
+            level += u16::from(self.eg_tl[0]) << 3;
         }
         if level > 0x3ff {
             level = 0x3ff;
@@ -1159,7 +1159,7 @@ impl YM3438 {
         mod0 = mod1 + mod2;
         if op == 0 {
             /* Feedback */
-            mod0 >>= 10 - self.fb[channel];
+            mod0 = mod0 >> (10 - self.fb[channel]);
             if self.fb[channel] == 0 {
                 mod0 = 0;
             }
