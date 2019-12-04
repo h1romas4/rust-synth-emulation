@@ -541,12 +541,6 @@ impl Default for YM3438 {
     }
 }
 
-const USE_FILTER: u32 = 0;
-const OUTPUT_FACTOR: i32 = 11;
-const OUTPUT_FACTOR_F: i32 = 12;
-const FILTER_CUTOFF: f32 = 0.512_331_3; // 0.512_331_301_282_628; 5894Hz  single pole IIR low pass
-const FILTER_CUTOFF_I: f32 = (1_f32 - FILTER_CUTOFF);
-
 const RSM_FRAC: i32 = 10;
 
 const OPN_WRITEBUF_SIZE: usize = 2048;
@@ -1423,7 +1417,7 @@ impl YM3438 {
         }
 
         if sample_rate != 0 {
-            self.rateratio = (((144 * sample_rate) << RSM_FRAC) / clock) as i32;
+            self.rateratio = ((u64::from(144 * sample_rate) << RSM_FRAC) / clock as u64) as i32;
         } else {
             self.rateratio = rateratio;
         }
@@ -1714,16 +1708,8 @@ impl YM3438 {
                 }
                 self.writebuf_samplecnt += 1;
             }
-
-            if USE_FILTER == 0 {
-                self.samples[0] *= OUTPUT_FACTOR;
-                self.samples[1] *= OUTPUT_FACTOR;
-            } else {
-                self.samples[0] = (self.oldsamples[0] as f32 + FILTER_CUTOFF_I
-                    * (self.samples[0] * OUTPUT_FACTOR_F - self.oldsamples[0]) as f32) as i32;
-                self.samples[1] = (self.oldsamples[1] as f32 + FILTER_CUTOFF_I
-                    * (self.samples[1] * OUTPUT_FACTOR_F - self.oldsamples[1]) as f32) as i32;
-            }
+            self.samples[0] *= 11;
+            self.samples[1] *= 11;
             self.samplecnt -= self.rateratio;
         }
 
