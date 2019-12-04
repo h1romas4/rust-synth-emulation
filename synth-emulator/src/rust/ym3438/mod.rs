@@ -997,7 +997,7 @@ impl YM3438 {
             }
         }
         if self.eg_kon_csm[slot] != 0 {
-            nextlevel |= i16::from(self.eg_tl[1] << 3);
+            nextlevel |= i16::from(self.eg_tl[1]) << 3;
         }
 
         /* Envelope off */
