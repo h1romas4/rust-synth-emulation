@@ -5,6 +5,9 @@ pub struct VgmPlay {
     ym3438: YM3438,
     sn76489: SN76489,
     vgmpos: usize,
+    datpos: usize,
+    pcmpos: usize,
+    pcmoffset: usize,
     remain_frame_size: usize,
     vgm_loop_offset: usize,
     vgmend: bool,
@@ -28,6 +31,9 @@ impl VgmPlay {
             ym3438: YM3438::default(),
             sn76489: SN76489::default(),
             vgmpos: 0,
+            datpos: 0,
+            pcmpos: 0,
+            pcmoffset: 0,
             remain_frame_size: 0,
             vgm_loop_offset: 0,
             vgmend: false,
@@ -152,7 +158,7 @@ impl VgmPlay {
             0x52 | 0x53 => {
                 reg = self.get_vgm_u8();
                 dat = self.get_vgm_u8();
-                let port = u32::from((command & 0x01) << 1);
+                let port = u32::from(command & 0x01) << 1;
                 self.ym3438.opn2_write_bufferd(port, reg);
                 self.ym3438.opn2_write_bufferd(port + 1, dat);
             }
@@ -174,8 +180,24 @@ impl VgmPlay {
                     self.vgmend = true;
                 }
             }
+            0x67 => {
+                self.get_vgm_u8(); // 0x66
+                self.get_vgm_u8(); // 0x00 data type
+                self.datpos = self.vgmpos + 4;
+                self.vgmpos += self.get_vgm_u8() as usize;
+            }
             0x70..=0x7f => {
                 wait = ((command & 0x0f) + 1).into();
+            }
+            0x80..=0x8f => {
+                wait = (command & 0x0f).into();
+                self.ym3438.opn2_write_bufferd(0, 0x2a);
+                self.ym3438.opn2_write_bufferd(1, self.vgmdata[self.datpos + self.pcmpos + self.pcmoffset]);
+                self.pcmoffset += 1;
+            }
+            0x0e => {
+                self.pcmpos = self.get_vgm_u32() as usize;
+                self.pcmoffset = 0;
             }
             _ => {
                 #[cfg(feature = "console_error_panic_hook")]
