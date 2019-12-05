@@ -585,12 +585,12 @@ impl YM3438 {
         /* Update registers */
         if self.write_fm_data != 0 {
             /* Slot */
-            if OP_OFFSET[slot] == u32::from(self.address & 0x107) {
+            if OP_OFFSET[slot] == u32::from(self.address) & 0x107 {
                 if self.address & 0x08 != 0 {
                     /* OP2, OP4 */
                     slot += 12;
                 }
-                address = u32::from(self.address & 0xf0);
+                address = u32::from(self.address) & 0xf0;
                 match address {
                     0x30 => {
                         /* DT, MULTI */
@@ -636,8 +636,8 @@ impl YM3438 {
             }
 
             /* Channel */
-            if CH_OFFSET[channel] == u32::from(self.address & 0x103) {
-                address = u32::from(self.address & 0xfc);
+            if CH_OFFSET[channel] == u32::from(self.address) & 0x103 {
+                address = u32::from(self.address) & 0xfc;
                 match address {
                     0xa0 => {
                         self.fnum[channel] = (u16::from(self.data) & 0xff) | ((u16::from(self.reg_a4) & 0x07) << 8);
