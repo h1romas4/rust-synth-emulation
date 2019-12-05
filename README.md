@@ -1,6 +1,6 @@
 # rust-synth-emulation
 
-PSG(SN76489) VGM player by Rust
+YM2612/SN76489 VGM player by Rust
 
 ## WebAssembly demo
 
