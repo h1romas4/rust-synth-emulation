@@ -1,9 +1,6 @@
 use super::sn76489::SN76489;
 use super::ym3438::YM3438;
 
-const MAX_VGM_SIZE: usize = 524_280;
-const MAX_SAMPLING_SIZE: usize = 4096;
-
 pub struct VgmPlay {
     ym3438: YM3438,
     sn76489: SN76489,
@@ -11,10 +8,10 @@ pub struct VgmPlay {
     remain_frame_size: usize,
     vgm_loop_offset: usize,
     vgmend: bool,
-    vgmdata: [u8; MAX_VGM_SIZE],
-    sn_sampling: [f32; MAX_SAMPLING_SIZE],
-    ym_sampling_r: [f32; MAX_SAMPLING_SIZE],
-    ym_sampling_l: [f32; MAX_SAMPLING_SIZE]
+    vgmdata: Vec<u8>,
+    max_sampling_size: usize,
+    sampling_l: Vec<f32>,
+    sampling_r: Vec<f32>
 }
 
 impl VgmPlay {
@@ -22,11 +19,11 @@ impl VgmPlay {
     /// Create sound driver.
     ///
     /// # Arguments
-    /// vgmdata - music data
-    /// sampling - WebAudio sampling buffer
+    /// max_sampling_size
+    /// vgm_size
     ///
     #[allow(clippy::new_without_default)]
-    pub fn new() -> Self {
+    pub fn new(max_sampling_size: usize, vgm_size: usize) -> Self {
         VgmPlay {
             ym3438: YM3438::default(),
             sn76489: SN76489::default(),
@@ -34,10 +31,10 @@ impl VgmPlay {
             remain_frame_size: 0,
             vgm_loop_offset: 0,
             vgmend: false,
-            vgmdata: [0; MAX_VGM_SIZE],
-            sn_sampling: [0_f32; MAX_SAMPLING_SIZE],
-            ym_sampling_r: [0_f32; MAX_SAMPLING_SIZE],
-            ym_sampling_l: [0_f32; MAX_SAMPLING_SIZE],
+            vgmdata: vec![0; vgm_size],
+            max_sampling_size: max_sampling_size,
+            sampling_l: vec![0_f32; max_sampling_size],
+            sampling_r: vec![0_f32; max_sampling_size]
         }
     }
 
@@ -49,10 +46,17 @@ impl VgmPlay {
     }
 
     ///
+    /// Return sampling_l buffer referance.
+    ///
+    pub fn get_sampling_l_ref(&mut self) -> *mut f32 {
+        self.sampling_l.as_mut_ptr()
+    }
+
+    ///
     /// Return sampling buffer referance.
     ///
-    pub fn get_sampling_ref(&mut self) -> *mut f32 {
-        self.sn_sampling.as_mut_ptr()
+    pub fn get_sampling_r_ref(&mut self) -> *mut f32 {
+        self.sampling_r.as_mut_ptr()
     }
 
     ///
@@ -98,18 +102,18 @@ impl VgmPlay {
             } else {
                 frame_size = self.parse_vgm(repeat) as usize;
             }
-            if buffer_pos + frame_size < MAX_SAMPLING_SIZE {
+            if buffer_pos + frame_size < self.max_sampling_size {
                 update_frame_size = frame_size;
             } else {
-                update_frame_size = MAX_SAMPLING_SIZE - buffer_pos;
+                update_frame_size = self.max_sampling_size - buffer_pos;
             }
-            self.sn76489.update(&mut self.sn_sampling, update_frame_size, buffer_pos);
-            self.ym3438.opn2_generate_stream(&mut self.ym_sampling_l, &mut self.ym_sampling_r, update_frame_size, buffer_pos);
+            self.sn76489.update(&mut self.sampling_l, &mut self.sampling_r, update_frame_size, buffer_pos);
+            self.ym3438.opn2_generate_stream(&mut self.sampling_l, &mut self.sampling_r, update_frame_size, buffer_pos);
             if self.remain_frame_size > 0 {
                 self.remain_frame_size -= update_frame_size;
             }
             buffer_pos += update_frame_size;
-            buffer_pos < MAX_SAMPLING_SIZE && !self.vgmend
+            buffer_pos < self.max_sampling_size && !self.vgmend
         } {}
         self.remain_frame_size = frame_size - update_frame_size;
 
@@ -190,9 +194,11 @@ impl VgmPlay {
 #[cfg(test)]
 mod tests {
     use super::VgmPlay;
-    use super::MAX_SAMPLING_SIZE;
     use std::fs::File;
     use std::io::Read;
+
+    const VGM_SIZE: usize = 524_280;
+    const MAX_SAMPLING_SIZE: usize = 4096;
 
     #[test]
     fn sn76489_1() -> Result<(), Box<dyn std::error::Error>> {
@@ -205,7 +211,7 @@ mod tests {
     }
 
     fn play(filepath: &str) -> Result<(), Box<dyn std::error::Error>> {
-        let mut vgmplay = VgmPlay::new();
+        let mut vgmplay = VgmPlay::new(MAX_SAMPLING_SIZE, VGM_SIZE);
 
         // load sn76489 vgm file
         let mut file = File::open(filepath)?;

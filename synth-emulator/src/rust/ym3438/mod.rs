@@ -1725,8 +1725,8 @@ impl YM3438 {
 
         for i in 0..numsamples {
             self.opn2_generate_resampled(&mut sample);
-            buffer_l[buffer_pos + i as usize] = self.convert_sample_i2f(sample[0]);
-            buffer_r[buffer_pos + i as usize] = self.convert_sample_i2f(sample[1]);
+            buffer_l[buffer_pos + i as usize] += self.convert_sample_i2f(sample[0]);
+            buffer_r[buffer_pos + i as usize] += self.convert_sample_i2f(sample[1]);
         }
     }
 

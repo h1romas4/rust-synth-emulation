@@ -203,7 +203,7 @@ impl SN76489 {
         }
     }
 
-    pub fn update(&mut self, buffer: &mut [f32], length: usize, buffer_pos: usize) {
+    pub fn update(&mut self, buffer_l: &mut [f32], buffer_r: &mut [f32], length: usize, buffer_pos: usize) {
         for j in 0..length {
             // Tone channels
             for i in 0..3 {
@@ -239,10 +239,12 @@ impl SN76489 {
             }
 
             // Build stereo result into buffer (clear buffer)
-            buffer[j + buffer_pos] = 0_f32;
+            buffer_l[j + buffer_pos] = 0_f32;
+            buffer_r[j + buffer_pos] = 0_f32;
             // For all 4 channels
             for i in 0..4 {
-                buffer[j + buffer_pos] +=  self.channels[i] / 32767_f32;
+                buffer_l[j + buffer_pos] +=  self.channels[i] / 32767_f32;
+                buffer_r[j + buffer_pos] +=  self.channels[i] / 32767_f32;
             }
 
             // Increment clock by 1 sample length
