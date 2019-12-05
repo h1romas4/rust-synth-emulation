@@ -184,7 +184,7 @@ impl VgmPlay {
                 self.get_vgm_u8(); // 0x66
                 self.get_vgm_u8(); // 0x00 data type
                 self.datpos = self.vgmpos + 4;
-                self.vgmpos += self.get_vgm_u8() as usize;
+                self.vgmpos += self.get_vgm_u32() as usize;
             }
             0x70..=0x7f => {
                 wait = ((command & 0x0f) + 1).into();
@@ -195,7 +195,7 @@ impl VgmPlay {
                 self.ym3438.opn2_write_bufferd(1, self.vgmdata[self.datpos + self.pcmpos + self.pcmoffset]);
                 self.pcmoffset += 1;
             }
-            0x0e => {
+            0xe0 => {
                 self.pcmpos = self.get_vgm_u32() as usize;
                 self.pcmoffset = 0;
             }
@@ -219,7 +219,6 @@ mod tests {
     use std::fs::File;
     use std::io::Read;
 
-    const VGM_SIZE: usize = 524_280;
     const MAX_SAMPLING_SIZE: usize = 4096;
 
     #[test]
@@ -233,13 +232,12 @@ mod tests {
     }
 
     fn play(filepath: &str) -> Result<(), Box<dyn std::error::Error>> {
-        let mut vgmplay = VgmPlay::new(MAX_SAMPLING_SIZE, VGM_SIZE);
-
         // load sn76489 vgm file
         let mut file = File::open(filepath)?;
         let mut buffer = Vec::new();
         let _ = file.read_to_end(&mut buffer)?;
 
+        let mut vgmplay = VgmPlay::new(MAX_SAMPLING_SIZE, file.metadata().unwrap().len() as usize);
         // set vgmdata
         let vgmdata_ref = vgmplay.get_vgmdata_ref();
         let mut i: usize = 0;
