@@ -23,10 +23,10 @@ impl WasmVgmPlay {
     /// constructor
     ///
     #[wasm_bindgen(constructor)]
-    pub fn from() -> Self {
+    pub fn from(max_sampling_size: usize, vgm_size: usize) -> Self {
         set_panic_hook();
         WasmVgmPlay {
-            vgmplay: VgmPlay::new()
+            vgmplay: VgmPlay::new(max_sampling_size, vgm_size)
         }
     }
 
@@ -38,10 +38,17 @@ impl WasmVgmPlay {
     }
 
     ///
-    /// Return sampling buffer referance.
+    /// Return sampling_l buffer referance.
     ///
-    pub fn get_sampling_ref(&mut self) -> *mut f32 {
-        self.vgmplay.get_sampling_ref()
+    pub fn get_sampling_l_ref(&mut self) -> *mut f32 {
+        self.vgmplay.get_sampling_l_ref()
+    }
+
+    ///
+    /// Return sampling_r buffer referance.
+    ///
+    pub fn get_sampling_r_ref(&mut self) -> *mut f32 {
+        self.vgmplay.get_sampling_r_ref()
     }
 
     ///

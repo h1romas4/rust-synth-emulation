@@ -9,9 +9,10 @@ const CANVAS_WIDTH = 768;
 const CANVAS_HEIGHT = 576;
 
 // vgm member
-let vgmplay = new WasmVgmPlay();
+let vgmplay;
 let vgmdata;
-let sampling_buffer;
+let sampling_buffer_l;
+let sampling_buffer_r;
 
 /**
  * audio context
@@ -44,17 +45,20 @@ canvas_context.fillText("Click Here", 260, 300);
 /**
  * load vgm data
  */
-fetch('./sn76489.vgm')
+fetch('./ym2612.vgm')
     .then(response => response.arrayBuffer())
     .then(bytes => {
-        // create buffer from wasm
+        // create wasm instanse
+        vgmplay = new WasmVgmPlay(MAX_SAMPLING_BUFFER, bytes.byteLength);
+        // set vgmdata
         vgmdata = new Uint8Array(memory.buffer, vgmplay.get_vgmdata_ref(), bytes.byteLength);
-        vgmdata.set(new Uint8Array(bytes))
-        sampling_buffer = new Float32Array(memory.buffer, vgmplay.get_sampling_ref(), MAX_SAMPLING_BUFFER);
+        vgmdata.set(new Uint8Array(bytes));
+        sampling_buffer_l = new Float32Array(memory.buffer, vgmplay.get_sampling_l_ref(), MAX_SAMPLING_BUFFER);
+        sampling_buffer_r = new Float32Array(memory.buffer, vgmplay.get_sampling_r_ref(), MAX_SAMPLING_BUFFER);
         // init player
         vgmplay.init(SAMPLING_RATE);
     })
-    .then(results => {
+    .then(() => {
         canvas.addEventListener('click', play, false);
     });
 
@@ -64,10 +68,11 @@ fetch('./sn76489.vgm')
 let play = function() {
     // init audio
     audio_context = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: SAMPLING_RATE });
-    audio_node = audio_context.createScriptProcessor(MAX_SAMPLING_BUFFER, 1, 1);
+    audio_node = audio_context.createScriptProcessor(MAX_SAMPLING_BUFFER, 2, 2);
     audio_node.onaudioprocess = function(ev) {
         let sample = vgmplay.play();
-        ev.outputBuffer.getChannelData(0).set(sampling_buffer);
+        ev.outputBuffer.getChannelData(0).set(sampling_buffer_l);
+        ev.outputBuffer.getChannelData(1).set(sampling_buffer_r);
         if(sample < MAX_SAMPLING_BUFFER) {
             audio_node.disconnect();
         }
