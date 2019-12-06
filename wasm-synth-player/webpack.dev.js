@@ -7,7 +7,7 @@ module.exports = merge(common, {
     devServer: {
         inline: true,
         contentBase: [
-            path.join(__dirname, '../docs/vgm'), // eslint-disable-line
+            path.join(__dirname, '../docs/'), // eslint-disable-line
         ],
         watchContentBase: false,
         port: 9000,

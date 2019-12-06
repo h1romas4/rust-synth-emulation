@@ -45,7 +45,7 @@ canvas_context.fillText("Click Here", 260, 300);
 /**
  * load vgm data
  */
-fetch('./ym2612.vgm')
+fetch('./vgm/ym2612.vgm')
     .then(response => response.arrayBuffer())
     .then(bytes => {
         // create wasm instanse
