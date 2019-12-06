@@ -116,7 +116,7 @@ pub struct SN76489 {
     // Frequency channel flip-flops
     tone_freq_pos: [i32; 4],
     // Value of each channel, before stereo is applied
-    channels: [f32; 4],
+    channels: [i32; 4],
     // intermediate values used at boundaries between + and - (does not need double accuracy)
     intermediate_pos: [f32; 4],
 }
@@ -160,12 +160,12 @@ impl SN76489 {
     pub fn write(&mut self, data: u8) {
         let data : u16 = u16::from(data);
         if data & 0x80 != 0 {
-            self.latched_register = i32::from((data >> 4) & 0x07);
+            self.latched_register = i32::from(data >> 4) & 0x07;
             self.registers[self.latched_register as usize] =
                 // zero low 4 bits
                 (self.registers[self.latched_register as usize] & 0x3f0)
                 // and replace with data
-                | i32::from(data & 0xf);
+                | i32::from(data) & 0xf;
         } else {
             // Data byte %0 - dddddd
             if (self.latched_register % 2) == 0 && (self.latched_register < 5) {
@@ -174,11 +174,11 @@ impl SN76489 {
                     // zero high 6 bits
                     (self.registers[self.latched_register as usize] & 0x00f)
                     // and replace with data
-                    | i32::from((data & 0x3f) << 4);
+                    | i32::from(data & 0x3f) << 4;
             } else {
                 // Other register
                 // Replace with data
-                self.registers[self.latched_register as usize] = i32::from(data & 0x0f);
+                self.registers[self.latched_register as usize] = i32::from(data) & 0x0f;
             }
         }
 
@@ -198,7 +198,7 @@ impl SN76489 {
                 self.noise_freq = 0x10 << (self.registers[6] & 0x3);
             }
             _ => {
-                // println!("unknown latched_register value {:x}", self.latched_register);
+                // println!("through latched_register value {:x}", self.latched_register);
             }
         }
     }
@@ -211,41 +211,42 @@ impl SN76489 {
                     if self.intermediate_pos[i] != f32::MIN {
                         // Intermediate position (antialiasing)
                         self.channels[i] =
-                            (((PSG_VOLUME_VALUES[self.registers[2 * i + 1] as usize]) as f32
-                                * self.intermediate_pos[i]) as i32) as f32;
+                            (PSG_VOLUME_VALUES[self.registers[2 * i + 1] as usize] as f32
+                                * self.intermediate_pos[i]) as i32;
                     } else {
                         // Flat (no antialiasing needed)
                         self.channels[i] =
-                            ((PSG_VOLUME_VALUES[self.registers[2 * i + 1] as usize])
-                                * self.tone_freq_pos[i]) as f32;
+                            (PSG_VOLUME_VALUES[self.registers[2 * i + 1] as usize]
+                                * self.tone_freq_pos[i]) as i32;
                     }
                 } else {
                     // Muted channel
-                    self.channels[i] = 0_f32;
+                    self.channels[i] = 0;
                 }
             }
 
             // Noise channel
             if (self.mute >> 3) & 1 != 0 {
                 // Now the noise is bipolar, too. -Valley Bell
-                self.channels[3] = (PSG_VOLUME_VALUES[self.registers[7] as usize] as f32)
-                    * (((self.noise_shift_register & 0x01) * 2 - 1) as f32);
+                self.channels[3] = PSG_VOLUME_VALUES[self.registers[7] as usize]
+                    * ((self.noise_shift_register & 0x01) * 2 - 1);
                 // due to the way the white noise works here, it seems twice as loud as it should be
                 if (self.registers[6] & 0x4) != 0 {
-                    self.channels[3] = ((self.channels[3] as i32) >> 1) as f32;
+                    self.channels[3] = self.channels[3] >> 1;
                 }
             } else {
-                self.channels[3] = 0_f32;
+                self.channels[3] = 0;
             }
 
             // Build stereo result into buffer (clear buffer)
-            buffer_l[j + buffer_pos] = 0_f32;
-            buffer_r[j + buffer_pos] = 0_f32;
-            // For all 4 channels
+            let mut buffer_li: i32  = 0;
+            let mut buffer_ri: i32  = 0;
             for i in 0..4 {
-                buffer_l[j + buffer_pos] +=  self.channels[i] / 32767_f32;
-                buffer_r[j + buffer_pos] +=  self.channels[i] / 32767_f32;
+                buffer_li +=  self.channels[i];
+                buffer_ri +=  self.channels[i];
             }
+            buffer_l[j + buffer_pos] = self.convert_sample_i2f(buffer_li / 2);
+            buffer_r[j + buffer_pos] = self.convert_sample_i2f(buffer_ri / 2);
 
             // Increment clock by 1 sample length
             self.clock += self.d_clock;
@@ -348,5 +349,21 @@ impl SN76489 {
 
     fn mute(&mut self, mask: MuteValues) {
         self.mute = mask as i32;
+    }
+
+    fn convert_sample_i2f(&self, i32_sample: i32) -> f32 {
+        let mut f32_sample: f32;
+        if i32_sample < 0 {
+            f32_sample = i32_sample as f32 / 32768_f32;
+        } else {
+            f32_sample = i32_sample as f32 / 32767_f32;
+        }
+        if f32_sample > 1_f32 {
+            f32_sample = 1_f32;
+        }
+        if f32_sample < -1_f32 {
+            f32_sample = -1_f32;
+        }
+        f32_sample
     }
 }

@@ -258,8 +258,9 @@ void SN76489_Update(SN76489_Context* chip, int **buffer, int length)
 					// no GG stereo for this channel
 					if ( chip->panning[i][0] == 1.0f )
 					{
-						buffer[0][j] += chip->Channels[i]; // left
-						buffer[1][j] += chip->Channels[i]; // right
+                        // synth-emuration workaround stereo fix
+						buffer[0][j] += chip->Channels[i] / 2; // left
+						buffer[1][j] += chip->Channels[i] / 2; // right
 					}
 					else
 					{

@@ -1549,8 +1549,8 @@ void OPN2_GenerateStream(ym3438_t *chip, Bit32s **sndptr, Bit32u numsamples)
     for (i = 0; i < numsamples; i++)
     {
         OPN2_GenerateResampled(chip, buffer);
-        *smpl++ = buffer[0];
-        *smpr++ = buffer[1];
+        *smpl++ += buffer[0];
+        *smpr++ += buffer[1];
     }
 }
 
