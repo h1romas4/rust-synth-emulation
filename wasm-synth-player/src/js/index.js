@@ -66,6 +66,7 @@ fetch('./ym2612.vgm')
  * play
  */
 let play = function() {
+    canvas.removeEventListener('click', play, false);
     // init audio
     audio_context = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: SAMPLING_RATE });
     audio_node = audio_context.createScriptProcessor(MAX_SAMPLING_BUFFER, 2, 2);
