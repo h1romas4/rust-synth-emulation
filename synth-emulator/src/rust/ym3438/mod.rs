@@ -1203,7 +1203,7 @@ impl YM3438 {
             sum = -256;
         }
 
-        if op == 0 || test_dac == 0 {
+        if op == 0 || test_dac != 0 {
             self.ch_out[channel] = self.ch_acc[channel];
         }
         self.ch_acc[channel] = sum;
