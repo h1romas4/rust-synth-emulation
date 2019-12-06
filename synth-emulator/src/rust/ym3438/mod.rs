@@ -1292,9 +1292,9 @@ impl YM3438 {
         if level > 0x1fff {
             level = 0x1fff;
         }
-        output = (u32::from((EXPROM[((level & 0xff) ^ 0xff) as usize] | 0x400) << 2) >> (level >> 8)) as i16;
+        output = ((u32::from((EXPROM[((level & 0xff) ^ 0xff) as usize]) | 0x400) << 2) >> (level >> 8)) as i16;
         if phase & 0x200 != 0 {
-            output = (!output) ^ (((u16::from(self.mode_test_21[4]) << 13) as i16) + 1);
+            output = ((!output) ^ ((u16::from(self.mode_test_21[4]) << 13)) as i16) + 1;
         } else {
             output ^= (u16::from(self.mode_test_21[4]) << 13) as i16;
         }
