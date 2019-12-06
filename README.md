@@ -2,9 +2,9 @@
 
 YM2612/SN76489 VGM player by Rust
 
-## WebAssembly demo
+## WebAssembly demo site
 
-[Synth emurator by Rust/WebAssembly](https://h1romas4.github.io/rust-synth-emulation/index.html)
+[ym2612.vgm](https://h1romas4.github.io/rust-synth-emulation/index.html)
 
 ## Build
 
@@ -33,6 +33,11 @@ npm run start
 http://localhost:9000/
 ```
 
+## License
+
+[GNU General Public License v2.0](https://github.com/h1romas4/rust-synth-emulation/blob/master/LICENSE.txt)
+
 ## Thanks!
 
+* [Nuked-OPN2](https://github.com/nukeykt/Nuked-OPN2)
 * [sn76489.c](https://github.com/vgmrips/vgmplay/blob/master/VGMPlay/chips/sn76489.c)
