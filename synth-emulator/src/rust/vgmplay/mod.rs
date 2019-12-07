@@ -8,6 +8,7 @@ pub struct VgmPlay {
     datpos: usize,
     pcmpos: usize,
     pcmoffset: usize,
+    pcmlength: usize,
     remain_frame_size: usize,
     vgm_loop_offset: usize,
     vgmend: bool,
@@ -34,6 +35,7 @@ impl VgmPlay {
             datpos: 0,
             pcmpos: 0,
             pcmoffset: 0,
+            pcmlength: 0,
             remain_frame_size: 0,
             vgm_loop_offset: 0,
             vgmend: false,
@@ -113,6 +115,7 @@ impl VgmPlay {
             } else {
                 update_frame_size = self.max_sampling_size - buffer_pos;
             }
+            // TODO: 8KHz sampling mix (pcmlength > 0)
             self.sn76489.update(&mut self.sampling_l, &mut self.sampling_r, update_frame_size, buffer_pos);
             self.ym3438.opn2_generate_stream(&mut self.sampling_l, &mut self.sampling_r, update_frame_size, buffer_pos);
             if self.remain_frame_size > 0 {
@@ -194,6 +197,35 @@ impl VgmPlay {
                 self.ym3438.opn2_write_bufferd(0, 0x2a);
                 self.ym3438.opn2_write_bufferd(1, self.vgmdata[self.datpos + self.pcmpos + self.pcmoffset]);
                 self.pcmoffset += 1;
+            }
+            0x90 => {
+                // Setup Stream Control
+                // 0x90 ss tt pp cc
+                // 0x90 00 02 00 2a
+                self.get_vgm_u32();
+            }
+            0x91 => {
+                // Set Stream Data
+                // 0x91 ss dd ll bb
+                // 0x91 00 00 01 2a
+                self.get_vgm_u32();
+            }
+            0x92 => {
+                // Set Stream Frequency
+                // 0x92 ss ff ff ff ff
+                // 0x92 00 40 1f 00 00 (8KHz)
+                self.get_vgm_u8();
+                self.get_vgm_u32();
+            }
+            0x93 => {
+                // Start Stream
+                // 0x93 ss aa aa aa aa mm ll ll ll ll
+                // 0x93 00 aa aa aa aa 01 ll ll ll ll
+                self.get_vgm_u8();
+                self.vgmpos = self.get_vgm_u32() as usize;
+                self.get_vgm_u8();
+                self.pcmlength = self.get_vgm_u32() as usize;
+                self.pcmoffset = 0;
             }
             0xe0 => {
                 self.pcmpos = self.get_vgm_u32() as usize;
