@@ -65,7 +65,7 @@ impl WasmVgmPlay {
     /// play
     ///
     pub fn play(&mut self) -> f32 {
-        self.vgmplay.play(false)
+        self.vgmplay.play(true)
     }
 }
 

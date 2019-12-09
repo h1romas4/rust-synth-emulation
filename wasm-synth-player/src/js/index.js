@@ -9,7 +9,7 @@ const CANVAS_WIDTH = 768;
 const CANVAS_HEIGHT = 576;
 
 // vgm member
-let vgmplay;
+let vgmplay = null;
 let vgmdata;
 let sampling_buffer_l;
 let sampling_buffer_r;
@@ -17,7 +17,7 @@ let sampling_buffer_r;
 /**
  * audio context
  */
-let audio_context;
+let audio_context = null;
 let audio_node;
 
 let audio_analyser;
@@ -38,29 +38,61 @@ if(pixelRatio > 1 && window.screen.width < CANVAS_WIDTH) {
     canvas.style.heigth = 240 + "px";
 }
 canvas_context = canvas.getContext('2d');
-canvas_context.font = "48px serif";
-canvas_context.fillStyle = "#fff";
-canvas_context.fillText("Click Here", 260, 300);
 
 /**
  * load vgm data
  */
 fetch('./vgm/ym2612.vgm')
     .then(response => response.arrayBuffer())
-    .then(bytes => {
-        // create wasm instanse
-        vgmplay = new WasmVgmPlay(MAX_SAMPLING_BUFFER, bytes.byteLength);
-        // set vgmdata
-        vgmdata = new Uint8Array(memory.buffer, vgmplay.get_vgmdata_ref(), bytes.byteLength);
-        vgmdata.set(new Uint8Array(bytes));
-        // init player
-        vgmplay.init(SAMPLING_RATE);
-        sampling_buffer_l = new Float32Array(memory.buffer, vgmplay.get_sampling_l_ref(), MAX_SAMPLING_BUFFER);
-        sampling_buffer_r = new Float32Array(memory.buffer, vgmplay.get_sampling_r_ref(), MAX_SAMPLING_BUFFER);
-    })
+    .then(bytes => { init(bytes); })
     .then(() => {
         canvas.addEventListener('click', play, false);
+        canvas.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+        }, false);
+        canvas.addEventListener('drop', onDrop, false);
+        // ready to go
+        canvas_context.font = "24px monospace";
+        canvas_context.fillStyle = "#fff";
+        canvas_context.fillText("DRAG AND DROP MEGADRIVE/GENESIS VGM(vgm/vgz) HEAR!", 80, 300);
+        canvas_context.fillText("OR CLICK TO PLAY SAMPLE VGM.", 200, 332);
     });
+
+/**
+ * Drag and Drop
+ */
+let onDrop = function(ev) {
+    console.log(ev);
+    let file = ev.dataTransfer.files[0];
+    let reader = new FileReader();
+    reader.onload = function() {
+        init(reader.result);
+        play();
+    };
+    reader.readAsArrayBuffer(file);
+    ev.preventDefault();
+    ev.stopPropagation();
+    return false;
+};
+
+/**
+ * init
+ * @param ArrayBuffer bytes
+ */
+let init = function(bytes) {
+    if(vgmplay != null) vgmplay.free();
+    // create wasm instanse
+    vgmplay = new WasmVgmPlay(MAX_SAMPLING_BUFFER, bytes.byteLength);
+    // set vgmdata
+    vgmdata = new Uint8Array(memory.buffer, vgmplay.get_vgmdata_ref(), bytes.byteLength);
+    vgmdata.set(new Uint8Array(bytes));
+    // init player
+    vgmplay.init(SAMPLING_RATE);
+    sampling_buffer_l = new Float32Array(memory.buffer, vgmplay.get_sampling_l_ref(), MAX_SAMPLING_BUFFER);
+    sampling_buffer_r = new Float32Array(memory.buffer, vgmplay.get_sampling_r_ref(), MAX_SAMPLING_BUFFER);
+}
 
 /**
  * play
@@ -68,6 +100,7 @@ fetch('./vgm/ym2612.vgm')
 let play = function() {
     canvas.removeEventListener('click', play, false);
     // init audio
+    if(audio_context != null) audio_context.close();
     audio_context = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: SAMPLING_RATE });
     audio_node = audio_context.createScriptProcessor(MAX_SAMPLING_BUFFER, 2, 2);
     audio_node.onaudioprocess = function(ev) {
