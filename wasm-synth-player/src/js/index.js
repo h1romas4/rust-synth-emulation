@@ -18,7 +18,7 @@ let sampling_buffer_r;
  * audio context
  */
 let audio_context = null;
-let audio_node;
+let audio_node = null;
 
 let audio_analyser;
 let audio_analyser_buffer;
@@ -100,6 +100,7 @@ let init = function(bytes) {
 let play = function() {
     canvas.removeEventListener('click', play, false);
     // init audio
+    if(audio_node != null) audio_node.disconnect();
     if(audio_context != null) audio_context.close();
     audio_context = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: SAMPLING_RATE });
     audio_node = audio_context.createScriptProcessor(MAX_SAMPLING_BUFFER, 2, 2);

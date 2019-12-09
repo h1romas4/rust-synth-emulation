@@ -13,6 +13,7 @@ pub struct VgmPlay {
     pcmoffset: usize,
     pcmlength: usize,
     remain_frame_size: usize,
+    vgm_loop: usize,
     vgm_loop_offset: usize,
     vgmend: bool,
     vgmfile: Vec<u8>,
@@ -41,6 +42,7 @@ impl VgmPlay {
             pcmoffset: 0,
             pcmlength: 0,
             remain_frame_size: 0,
+            vgm_loop: 0,
             vgm_loop_offset: 0,
             vgmend: false,
             vgmfile: vec![0; vgm_file_size],
@@ -86,8 +88,10 @@ impl VgmPlay {
 
         self.vgmpos = 0x0c; clock_sn76489 = self.get_vgm_u32();
         self.vgmpos = 0x2C; clock_ym2612 = self.get_vgm_u32();
-        self.vgmpos = 0x1c; self.vgm_loop_offset = (0x1c + self.get_vgm_u32()) as usize;
+        self.vgmpos = 0x1c; self.vgm_loop = self.get_vgm_u32() as usize;
         self.vgmpos = 0x34; self.vgmpos = (0x34 + self.get_vgm_u32()) as usize;
+
+        self.vgm_loop_offset = self.vgm_loop + 0x1c;
 
         if clock_sn76489 == 0 {
             clock_sn76489 = 3_579_545;
@@ -189,7 +193,7 @@ impl VgmPlay {
                 wait = 882;
             }
             0x66 => {
-                if self.vgm_loop_offset == 0 {
+                if self.vgm_loop == 0 {
                     self.vgmend = true;
                 } else if repeat {
                     self.vgmpos = self.vgm_loop_offset;
