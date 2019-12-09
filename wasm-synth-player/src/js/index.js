@@ -64,7 +64,6 @@ fetch('./vgm/ym2612.vgm')
  * Drag and Drop
  */
 let onDrop = function(ev) {
-    console.log(ev);
     let file = ev.dataTransfer.files[0];
     let reader = new FileReader();
     reader.onload = function() {
