@@ -53,10 +53,10 @@ fetch('./vgm/ym2612.vgm')
         // set vgmdata
         vgmdata = new Uint8Array(memory.buffer, vgmplay.get_vgmdata_ref(), bytes.byteLength);
         vgmdata.set(new Uint8Array(bytes));
-        sampling_buffer_l = new Float32Array(memory.buffer, vgmplay.get_sampling_l_ref(), MAX_SAMPLING_BUFFER);
-        sampling_buffer_r = new Float32Array(memory.buffer, vgmplay.get_sampling_r_ref(), MAX_SAMPLING_BUFFER);
         // init player
         vgmplay.init(SAMPLING_RATE);
+        sampling_buffer_l = new Float32Array(memory.buffer, vgmplay.get_sampling_l_ref(), MAX_SAMPLING_BUFFER);
+        sampling_buffer_r = new Float32Array(memory.buffer, vgmplay.get_sampling_r_ref(), MAX_SAMPLING_BUFFER);
     })
     .then(() => {
         canvas.addEventListener('click', play, false);
