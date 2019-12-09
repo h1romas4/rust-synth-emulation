@@ -1,3 +1,6 @@
+use std::io::prelude::*;
+use flate2::read::GzDecoder;
+
 use super::sn76489::SN76489;
 use super::ym3438::YM3438;
 
@@ -12,6 +15,7 @@ pub struct VgmPlay {
     remain_frame_size: usize,
     vgm_loop_offset: usize,
     vgmend: bool,
+    vgmfile: Vec<u8>,
     vgmdata: Vec<u8>,
     max_sampling_size: usize,
     sampling_l: Vec<f32>,
@@ -27,7 +31,7 @@ impl VgmPlay {
     /// vgm_size
     ///
     #[allow(clippy::new_without_default)]
-    pub fn new(max_sampling_size: usize, vgm_size: usize) -> Self {
+    pub fn new(max_sampling_size: usize, vgm_file_size: usize) -> Self {
         VgmPlay {
             ym3438: YM3438::default(),
             sn76489: SN76489::default(),
@@ -39,7 +43,8 @@ impl VgmPlay {
             remain_frame_size: 0,
             vgm_loop_offset: 0,
             vgmend: false,
-            vgmdata: vec![0; vgm_size],
+            vgmfile: vec![0; vgm_file_size],
+            vgmdata: Vec::new(),
             max_sampling_size: max_sampling_size,
             sampling_l: vec![0_f32; max_sampling_size],
             sampling_r: vec![0_f32; max_sampling_size]
@@ -50,7 +55,7 @@ impl VgmPlay {
     /// Return vgmdata buffer referance.
     ///
     pub fn get_vgmdata_ref(&mut self) -> *mut u8 {
-        self.vgmdata.as_mut_ptr()
+        self.vgmfile.as_mut_ptr()
     }
 
     ///
@@ -68,12 +73,14 @@ impl VgmPlay {
     }
 
     ///
-    /// Initialize sound driver.
+    /// extract vgz and initialize sound driver.
     ///
     /// # Arguments
     /// sample_rate - WebAudio sampling rate
     ///
     pub fn init(&mut self, sample_rate: f32) {
+        self.extract();
+
         let mut clock_sn76489 : u32;
         let mut clock_ym2612 : u32;
 
@@ -127,6 +134,13 @@ impl VgmPlay {
         self.remain_frame_size = frame_size - update_frame_size;
 
         buffer_pos as f32
+    }
+
+    fn extract(&mut self) {
+        let mut d = GzDecoder::new(self.vgmfile.as_slice());
+        if let Err(_) = d.read_to_end(&mut self.vgmdata) {
+            self.vgmdata = self.vgmfile.clone();
+        }
     }
 
     fn get_vgm_u8(&mut self) -> u8 {

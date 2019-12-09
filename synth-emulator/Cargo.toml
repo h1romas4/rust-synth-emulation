@@ -6,3 +6,6 @@ edition = "2018"
 
 [lib]
 path = "src/rust/lib.rs"
+
+[dependencies]
+flate2 = "1.0"

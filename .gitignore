@@ -3,6 +3,7 @@ target/
 pkg/
 dist/
 *.vgm
+*.vgz
 *.pcm
 !sn76489.vgm
 !ym2612.vgm
