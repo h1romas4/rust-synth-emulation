@@ -11,22 +11,22 @@ const CANVAS_HEIGHT = 576;
 // vgm member
 let vgmplay = null;
 let vgmdata;
-let sampling_buffer_l;
-let sampling_buffer_r;
+let samplingBufferL;
+let samplingBufferR;
 
 /**
  * audio context
  */
-let audio_context = null;
-let audio_node = null;
+let audioContext = null;
+let audioNode = null;
 
-let audio_analyser;
-let audio_analyser_buffer;
-let audio_analyser_buffer_length;
+let audioAnalyser;
+let audioAnalyserBuffer;
+let audioAnalyserBufferLength;
 
 // canvas member
 let canvas;
-let canvas_context;
+let canvasContext;
 
 // canvas setting
 canvas = document.getElementById('screen');
@@ -37,7 +37,7 @@ if(pixelRatio > 1 && window.screen.width < CANVAS_WIDTH) {
     canvas.style.width = 320 + "px";
     canvas.style.heigth = 240 + "px";
 }
-canvas_context = canvas.getContext('2d');
+canvasContext = canvas.getContext('2d');
 
 /**
  * load vgm data
@@ -54,10 +54,10 @@ fetch('./vgm/ym2612.vgm')
         }, false);
         canvas.addEventListener('drop', onDrop, false);
         // ready to go
-        canvas_context.font = "24px monospace";
-        canvas_context.fillStyle = "#fff";
-        canvas_context.fillText("DRAG AND DROP MEGADRIVE/GENESIS VGM(vgm/vgz) HEAR!", 80, 300);
-        canvas_context.fillText("OR CLICK TO PLAY SAMPLE VGM.", 200, 332);
+        canvasContext.font = "24px monospace";
+        canvasContext.fillStyle = "#fff";
+        canvasContext.fillText("DRAG AND DROP MEGADRIVE/GENESIS VGM(vgm/vgz) HEAR!", 80, 300);
+        canvasContext.fillText("OR CLICK TO PLAY SAMPLE VGM.", 200, 332);
     });
 
 /**
@@ -89,8 +89,8 @@ let init = function(bytes) {
     vgmdata.set(new Uint8Array(bytes));
     // init player
     vgmplay.init(SAMPLING_RATE);
-    sampling_buffer_l = new Float32Array(memory.buffer, vgmplay.get_sampling_l_ref(), MAX_SAMPLING_BUFFER);
-    sampling_buffer_r = new Float32Array(memory.buffer, vgmplay.get_sampling_r_ref(), MAX_SAMPLING_BUFFER);
+    samplingBufferL = new Float32Array(memory.buffer, vgmplay.get_sampling_l_ref(), MAX_SAMPLING_BUFFER);
+    samplingBufferR = new Float32Array(memory.buffer, vgmplay.get_sampling_r_ref(), MAX_SAMPLING_BUFFER);
 }
 
 /**
@@ -99,46 +99,46 @@ let init = function(bytes) {
 let play = function() {
     canvas.removeEventListener('click', play, false);
     // init audio
-    if(audio_node != null) audio_node.disconnect();
-    if(audio_context != null) audio_context.close();
-    audio_context = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: SAMPLING_RATE });
-    audio_node = audio_context.createScriptProcessor(MAX_SAMPLING_BUFFER, 2, 2);
-    audio_node.onaudioprocess = function(ev) {
+    if(audioNode != null) audioNode.disconnect();
+    if(audioContext != null) audioContext.close();
+    audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: SAMPLING_RATE });
+    audioNode = audioContext.createScriptProcessor(MAX_SAMPLING_BUFFER, 2, 2);
+    audioNode.onaudioprocess = function(ev) {
         let sample = vgmplay.play();
-        ev.outputBuffer.getChannelData(0).set(sampling_buffer_l);
-        ev.outputBuffer.getChannelData(1).set(sampling_buffer_r);
+        ev.outputBuffer.getChannelData(0).set(samplingBufferL);
+        ev.outputBuffer.getChannelData(1).set(samplingBufferR);
         if(sample < MAX_SAMPLING_BUFFER) {
-            audio_node.disconnect();
+            audioNode.disconnect();
         }
     };
     // connect fft
-    audio_analyser = audio_context.createAnalyser();
-    audio_analyser_buffer_length = audio_analyser.frequencyBinCount;
-    audio_analyser_buffer = new Uint8Array(audio_analyser_buffer_length);
-    audio_analyser.getByteTimeDomainData(audio_analyser_buffer);
-    audio_node.connect(audio_analyser);
-    audio_analyser.connect(audio_context.destination);
+    audioAnalyser = audioContext.createAnalyser();
+    audioAnalyserBufferLength = audioAnalyser.frequencyBinCount;
+    audioAnalyserBuffer = new Uint8Array(audioAnalyserBufferLength);
+    audioAnalyser.getByteTimeDomainData(audioAnalyserBuffer);
+    audioNode.connect(audioAnalyser);
+    audioAnalyser.connect(audioContext.destination);
     draw();
 };
 
 let draw = function() {
     requestAnimationFrame(draw);
 
-    audio_analyser.getByteFrequencyData(audio_analyser_buffer);
+    audioAnalyser.getByteFrequencyData(audioAnalyserBuffer);
 
-    canvas_context.fillStyle = 'rgb(0, 0, 0)';
-    canvas_context.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    canvasContext.fillStyle = 'rgb(0, 0, 0)';
+    canvasContext.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-    canvas_context.lineWidth = 1;
-    canvas_context.beginPath();
-    canvas_context.strokeStyle = 'rgb(0, 0, 255)';
+    canvasContext.lineWidth = 1;
+    canvasContext.beginPath();
+    canvasContext.strokeStyle = 'rgb(0, 0, 255)';
 
-    var width = CANVAS_WIDTH * 1.0 / audio_analyser_buffer_length;
+    var width = CANVAS_WIDTH * 1.0 / audioAnalyserBufferLength;
 
-    for(var i = 0; i < audio_analyser_buffer_length; i++) {
-        var v = audio_analyser_buffer[i] / 255;
+    for(var i = 0; i < audioAnalyserBufferLength; i++) {
+        var v = audioAnalyserBuffer[i] / 255;
         var y = v * CANVAS_HEIGHT / 2;
-        canvas_context.rect(width * i, CANVAS_HEIGHT, width, -y * 1.5);
+        canvasContext.rect(width * i, CANVAS_HEIGHT, width, -y * 1.5);
     }
-    canvas_context.stroke();
+    canvasContext.stroke();
 }
