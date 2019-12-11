@@ -17,6 +17,7 @@ let vgmdata;
 let samplingBufferL;
 let samplingBufferR;
 let feedOutCount = 0;
+let playlist = [];
 
 /**
  * audio context
@@ -69,17 +70,31 @@ fetch('./vgm/ym2612.vgm')
  * Drag and Drop
  */
 let onDrop = function(ev) {
-    let file = ev.dataTransfer.files[0];
-    let reader = new FileReader();
-    reader.onload = function() {
-        init(reader.result);
-        play();
-    };
-    reader.readAsArrayBuffer(file);
     ev.preventDefault();
     ev.stopPropagation();
+    playlist = [];
+    let files = ev.dataTransfer.files;
+    for(let i = 0; i < files.length; i++) {
+        let reader = new FileReader();
+        reader.onload = function() {
+            playlist.push(reader.result);
+            if(playlist.length >= files.length) {
+                next();
+            }
+        };
+        reader.readAsArrayBuffer(files[i]);
+    }
     return false;
 };
+
+/**
+ * play next playlist
+ */
+let next = function() {
+    if(playlist.length <= 0) return;
+    init(playlist.shift());
+    play();
+}
 
 /**
  * init
@@ -113,10 +128,11 @@ let play = function() {
         let loop = vgmplay.play();
         ev.outputBuffer.getChannelData(0).set(samplingBufferL);
         ev.outputBuffer.getChannelData(1).set(samplingBufferR);
+        let stop = false;
         if(loop >= LOOP_MAX_COUNT) {
             if(feedOutCount == 0 && loop > LOOP_MAX_COUNT) {
                 // no loop track
-                audioNode.disconnect();
+                stop = true;
             } else {
                 // feedout loop track
                 if(feedOutCount == 0 ) {
@@ -125,9 +141,13 @@ let play = function() {
                 }
                 feedOutCount++;
                 if(feedOutCount > FEED_OUT_REMAIN) {
-                    audioNode.disconnect();
+                    stop = true;
                 }
             }
+        }
+        if(stop) {
+            audioNode.disconnect();
+            next();
         }
     };
     // connect gain
