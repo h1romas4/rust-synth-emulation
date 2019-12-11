@@ -4,6 +4,9 @@ import { memory } from "wasm-vgm-player/wasm_vgm_player_bg";
 // vgm setting
 const MAX_SAMPLING_BUFFER = 4096;
 const SAMPLING_RATE = 44100;
+const LOOP_MAX_COUNT = 2;
+const FEED_OUT_SECOND = 2;
+const FEED_OUT_REMAIN = (SAMPLING_RATE * FEED_OUT_SECOND) / MAX_SAMPLING_BUFFER;
 // canvas settings
 const CANVAS_WIDTH = 768;
 const CANVAS_HEIGHT = 576;
@@ -13,12 +16,14 @@ let vgmplay = null;
 let vgmdata;
 let samplingBufferL;
 let samplingBufferR;
+let feedOutCount = 0;
 
 /**
  * audio context
  */
 let audioContext = null;
 let audioNode = null;
+let audioGain;
 
 let audioAnalyser;
 let audioAnalyserBuffer;
@@ -103,21 +108,39 @@ let play = function() {
     if(audioContext != null) audioContext.close();
     audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: SAMPLING_RATE });
     audioNode = audioContext.createScriptProcessor(MAX_SAMPLING_BUFFER, 2, 2);
+    feedOutCount = 0;
     audioNode.onaudioprocess = function(ev) {
-        let sample = vgmplay.play();
+        let loop = vgmplay.play();
         ev.outputBuffer.getChannelData(0).set(samplingBufferL);
         ev.outputBuffer.getChannelData(1).set(samplingBufferR);
-        if(sample < MAX_SAMPLING_BUFFER) {
-            audioNode.disconnect();
+        if(loop >= LOOP_MAX_COUNT) {
+            if(feedOutCount == 0 && loop > LOOP_MAX_COUNT) {
+                // no loop track
+                audioNode.disconnect();
+            } else {
+                // feedout loop track
+                if(feedOutCount == 0 ) {
+                    audioGain.gain.setValueAtTime(1, audioContext.currentTime);
+                    audioGain.gain.linearRampToValueAtTime(0, audioContext.currentTime + FEED_OUT_SECOND);
+                }
+                feedOutCount++;
+                if(feedOutCount > FEED_OUT_REMAIN) {
+                    audioNode.disconnect();
+                }
+            }
         }
     };
+    // connect gain
+    audioGain = audioContext.createGain();
+    audioNode.connect(audioGain);
+    audioGain.connect(audioContext.destination);
+    audioGain.gain.setValueAtTime(1, audioContext.currentTime);
     // connect fft
     audioAnalyser = audioContext.createAnalyser();
     audioAnalyserBufferLength = audioAnalyser.frequencyBinCount;
     audioAnalyserBuffer = new Uint8Array(audioAnalyserBufferLength);
     audioAnalyser.getByteTimeDomainData(audioAnalyserBuffer);
-    audioNode.connect(audioAnalyser);
-    audioAnalyser.connect(audioContext.destination);
+    audioGain.connect(audioAnalyser);
     draw();
 };
 

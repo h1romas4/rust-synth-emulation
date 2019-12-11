@@ -15,6 +15,7 @@ pub struct VgmPlay {
     remain_frame_size: usize,
     vgm_loop: usize,
     vgm_loop_offset: usize,
+    vgm_loop_count: usize,
     vgmend: bool,
     vgmfile: Vec<u8>,
     vgmdata: Vec<u8>,
@@ -44,6 +45,7 @@ impl VgmPlay {
             remain_frame_size: 0,
             vgm_loop: 0,
             vgm_loop_offset: 0,
+            vgm_loop_count: 0,
             vgmend: false,
             vgmfile: vec![0; vgm_file_size],
             vgmdata: Vec::new(),
@@ -109,7 +111,7 @@ impl VgmPlay {
     ///
     /// play
     ///
-    pub fn play(&mut self, repeat: bool) -> f32 {
+    pub fn play(&mut self, repeat: bool) -> usize {
         let mut frame_size: usize;
         let mut update_frame_size: usize;
         let mut buffer_pos: usize;
@@ -137,7 +139,14 @@ impl VgmPlay {
         } {}
         self.remain_frame_size = frame_size - update_frame_size;
 
-        buffer_pos as f32
+        if self.vgm_loop_count == std::usize::MAX {
+            self.vgm_loop_count = 0;
+        }
+        if self.vgmend {
+            std::usize::MAX
+        } else {
+            self.vgm_loop_count
+        }
     }
 
     fn extract(&mut self) {
@@ -197,6 +206,7 @@ impl VgmPlay {
                     self.vgmend = true;
                 } else if repeat {
                     self.vgmpos = self.vgm_loop_offset;
+                    self.vgm_loop_count += 1;
                 } else {
                     self.vgmend = true;
                 }
@@ -299,7 +309,7 @@ mod tests {
         // init & sample
         vgmplay.init(44100_f32);
         // play
-        while vgmplay.play(false) >= MAX_SAMPLING_SIZE as f32 {}
+        while vgmplay.play(false) <= 0 {}
 
         Ok(())
     }
