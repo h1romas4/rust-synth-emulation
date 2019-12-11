@@ -76,8 +76,9 @@ let onDrop = function(ev) {
     let files = ev.dataTransfer.files;
     for(let i = 0; i < files.length; i++) {
         let reader = new FileReader();
+        let number = i;
         reader.onload = function() {
-            playlist.push(reader.result);
+            playlist[number] = reader.result;
             if(playlist.length >= files.length) {
                 next();
             }
