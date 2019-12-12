@@ -54,10 +54,15 @@ fetch('./vgm/ym2612.vgm')
     .then(() => {
         canvas.addEventListener('click', play, false);
         canvas.addEventListener('dragover', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
+            prevent(e);
+            canvas.style.border = '4px dotted #333333';
             return false;
         }, false);
+        canvas.addEventListener('dragleave', function(e) {
+            prevent(e);
+            canvas.style.border = 'none';
+            return false;
+        });
         canvas.addEventListener('drop', onDrop, false);
         // ready to go
         canvasContext.font = "24px monospace";
@@ -67,11 +72,20 @@ fetch('./vgm/ym2612.vgm')
     });
 
 /**
+ * event prevent
+ */
+let prevent = function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+};
+
+/**
  * Drag and Drop
  */
 let onDrop = function(ev) {
-    ev.preventDefault();
-    ev.stopPropagation();
+    prevent(ev);
+    canvas.removeEventListener('drop', onDrop, false);
+    canvas.style.border = 'none';
     playlist = [];
     let files = ev.dataTransfer.files;
     for(let i = 0; i < files.length; i++) {
@@ -80,6 +94,7 @@ let onDrop = function(ev) {
         reader.onload = function() {
             playlist[number] = reader.result;
             if(playlist.length >= files.length) {
+                canvas.addEventListener('drop', onDrop, false);
                 next();
             }
         };
