@@ -12,6 +12,7 @@ add_source_files(
     ./src/c/sn76489.c
     ./src/c/vgmplay.c
     ./src/c/ym3438.c
+    ./src/c/pwm.c
 )
 
 add_compile_flags(C
