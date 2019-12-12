@@ -13,7 +13,9 @@ pub struct VgmPlay {
     pcmpos: usize,
     pcmoffset: usize,
     pcm_stream_sample_count: f32,
+    pcm_stream_sampling_pos: f32,
     pcm_stream_length: usize,
+    pcm_stream_pos_init: usize,
     pcm_stream_pos: usize,
     pcm_stream_offset: usize,
     remain_frame_size: usize,
@@ -47,7 +49,9 @@ impl VgmPlay {
             pcmpos: 0,
             pcmoffset: 0,
             pcm_stream_sample_count: 0_f32,
+            pcm_stream_sampling_pos: 0_f32,
             pcm_stream_length: 0,
+            pcm_stream_pos_init: 0,
             pcm_stream_pos: 0,
             pcm_stream_offset: 0,
             remain_frame_size: 0,
@@ -138,12 +142,21 @@ impl VgmPlay {
             } else {
                 update_frame_size = self.max_sampling_size - buffer_pos;
             }
-            self.sn76489.update(&mut self.sampling_l, &mut self.sampling_r, update_frame_size, buffer_pos);
-            self.ym3438.opn2_generate_stream(&mut self.sampling_l, &mut self.sampling_r, update_frame_size, buffer_pos);
-            if self.remain_frame_size > 0 {
-                self.remain_frame_size -= update_frame_size;
+            if self.pcm_stream_pos_init == self.pcm_stream_pos && self.pcm_stream_length > 0 {
+                self.pcm_stream_sampling_pos = 0_f32;
             }
-            buffer_pos += update_frame_size;
+            for _ in 0..update_frame_size {
+                if self.pcm_stream_length > 0 && (self.pcm_stream_sampling_pos % self.pcm_stream_sample_count) as usize == 0 {
+                    self.update_dac();
+                }
+                self.sn76489.update(&mut self.sampling_l, &mut self.sampling_r, 1, buffer_pos);
+                self.ym3438.opn2_generate_stream(&mut self.sampling_l, &mut self.sampling_r, 1, buffer_pos);
+                if self.remain_frame_size > 0 {
+                    self.remain_frame_size -= 1;
+                }
+                buffer_pos += 1;
+                self.pcm_stream_sampling_pos += 1_f32;
+            }
             buffer_pos < self.max_sampling_size && !self.vgmend
         } {}
         self.remain_frame_size = frame_size - update_frame_size;
@@ -259,7 +272,8 @@ impl VgmPlay {
                 // 0x93 ss aa aa aa aa mm ll ll ll ll
                 // 0x93 00 aa aa aa aa 01 ll ll ll ll
                 self.get_vgm_u8();
-                self.pcm_stream_pos = self.get_vgm_u32() as usize;
+                self.pcm_stream_pos_init = self.get_vgm_u32() as usize;
+                self.pcm_stream_pos = self.pcm_stream_pos_init;
                 self.get_vgm_u8();
                 self.pcm_stream_length = self.get_vgm_u32() as usize;
                 self.pcm_stream_offset = 0;
@@ -289,6 +303,13 @@ impl VgmPlay {
             }
         }
         wait
+    }
+
+    fn update_dac(&mut self) {
+        self.ym3438.opn2_write_bufferd(0, 0x2a);
+        self.ym3438.opn2_write_bufferd(1, self.vgmdata[self.datpos + self.pcm_stream_pos + self.pcm_stream_offset]);
+        self.pcm_stream_length -= 1;
+        self.pcm_stream_pos += 1;
     }
 }
 
