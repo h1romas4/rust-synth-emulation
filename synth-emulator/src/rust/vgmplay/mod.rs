@@ -7,11 +7,15 @@ use super::ym3438::YM3438;
 pub struct VgmPlay {
     ym3438: YM3438,
     sn76489: SN76489,
+    sample_rate: f32,
     vgmpos: usize,
     datpos: usize,
     pcmpos: usize,
     pcmoffset: usize,
-    pcmlength: usize,
+    pcm_stream_sample_count: f32,
+    pcm_stream_length: usize,
+    pcm_stream_pos: usize,
+    pcm_stream_offset: usize,
     remain_frame_size: usize,
     vgm_loop: usize,
     vgm_loop_offset: usize,
@@ -37,11 +41,15 @@ impl VgmPlay {
         VgmPlay {
             ym3438: YM3438::default(),
             sn76489: SN76489::default(),
+            sample_rate: 0_f32,
             vgmpos: 0,
             datpos: 0,
             pcmpos: 0,
             pcmoffset: 0,
-            pcmlength: 0,
+            pcm_stream_sample_count: 0_f32,
+            pcm_stream_length: 0,
+            pcm_stream_pos: 0,
+            pcm_stream_offset: 0,
             remain_frame_size: 0,
             vgm_loop: 0,
             vgm_loop_offset: 0,
@@ -83,6 +91,8 @@ impl VgmPlay {
     /// sample_rate - WebAudio sampling rate
     ///
     pub fn init(&mut self, sample_rate: f32) {
+        self.sample_rate = sample_rate;
+
         self.extract();
 
         let mut clock_sn76489 : u32;
@@ -128,7 +138,6 @@ impl VgmPlay {
             } else {
                 update_frame_size = self.max_sampling_size - buffer_pos;
             }
-            // TODO: 8KHz sampling mix (pcmlength > 0)
             self.sn76489.update(&mut self.sampling_l, &mut self.sampling_r, update_frame_size, buffer_pos);
             self.ym3438.opn2_generate_stream(&mut self.sampling_l, &mut self.sampling_r, update_frame_size, buffer_pos);
             if self.remain_frame_size > 0 {
@@ -243,17 +252,30 @@ impl VgmPlay {
                 // 0x92 ss ff ff ff ff
                 // 0x92 00 40 1f 00 00 (8KHz)
                 self.get_vgm_u8();
-                self.get_vgm_u32();
+                self.pcm_stream_sample_count = self.sample_rate / self.get_vgm_u32() as f32;
             }
             0x93 => {
                 // Start Stream
                 // 0x93 ss aa aa aa aa mm ll ll ll ll
                 // 0x93 00 aa aa aa aa 01 ll ll ll ll
                 self.get_vgm_u8();
-                self.vgmpos = self.get_vgm_u32() as usize;
+                self.pcm_stream_pos = self.get_vgm_u32() as usize;
                 self.get_vgm_u8();
-                self.pcmlength = self.get_vgm_u32() as usize;
-                self.pcmoffset = 0;
+                self.pcm_stream_length = self.get_vgm_u32() as usize;
+                self.pcm_stream_offset = 0;
+            }
+            0x94 => {
+                // Stop Stream
+                // 0x94 ss
+                self.get_vgm_u8();
+                self.pcm_stream_length = 0;
+            }
+            0x95 => {
+                // Start Stream (fast call)
+                // 0x95 ss bb bb ff
+                self.get_vgm_u8();
+                self.get_vgm_u16();
+                self.get_vgm_u8();
             }
             0xe0 => {
                 self.pcmpos = self.get_vgm_u32() as usize;
