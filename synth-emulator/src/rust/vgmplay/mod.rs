@@ -343,14 +343,14 @@ mod tests {
 
     const MAX_SAMPLING_SIZE: usize = 4096;
 
-    // #[test]
-    // fn sn76489_1() -> Result<(), Box<dyn std::error::Error>> {
-    //     play("../docs/vgm/sn76489.vgm")
-    // }
+    #[test]
+    fn sn76489_1() -> Result<(), Box<dyn std::error::Error>> {
+        play("../docs/vgm/sn76489.vgm")
+    }
 
     #[test]
     fn ym2612_1() -> Result<(), Box<dyn std::error::Error>> {
-        play("../docs/vgm/03 - Final Take Off.vgz")
+        play("../docs/vgm/ym2612.vgm")
     }
 
     fn play(filepath: &str) -> Result<(), Box<dyn std::error::Error>> {
