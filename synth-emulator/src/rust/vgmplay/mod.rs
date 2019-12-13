@@ -209,7 +209,6 @@ impl VgmPlay {
         let command: u8;
         let reg: u8;
         let dat: u8;
-        let add: u8;
         let mut wait: u16 = 0;
 
         command = self.get_vgm_u8();
