@@ -8,8 +8,10 @@
 #include <unistd.h>
 #include <assert.h>
 #include <stdbool.h>
+#include "mamedef.h"
 #include "ym3438.h"
 #include "sn76489.h"
+#include "pwm.h"
 #include "vgmplay.h"
 
 #define SAMPLING_RATE 44100
@@ -29,6 +31,7 @@ bool vgmend = false;
 
 uint32_t clock_sn76489;
 uint32_t clock_ym2612;
+uint32_t clock_pwm;
 
 SN76489_Context *sn76489;
 ym3438_t *ym3438;
@@ -48,6 +51,7 @@ void vgm_load(void) {
 
     clock_sn76489 = vgmheader->lngHzPSG;
     clock_ym2612 = vgmheader->lngHzYM2612;
+    clock_pwm = 23011360;
     if(clock_ym2612 == 0) clock_ym2612 = 7670453;
     if(clock_sn76489 == 0) clock_sn76489 = 3579545;
 
@@ -166,6 +170,8 @@ int main(void)
     ym3438 = (ym3438_t *)malloc(sizeof(ym3438_t));
     OPN2_Reset(ym3438, SAMPLING_RATE, clock_ym2612);
     OPN2_SetChipType(ym3438_mode_ym2612);
+
+    device_start_pwm(0, clock_pwm);
 
     // malloc sound buffer
     int **buflr;

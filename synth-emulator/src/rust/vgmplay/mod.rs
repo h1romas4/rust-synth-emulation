@@ -3,10 +3,12 @@ use flate2::read::GzDecoder;
 
 use super::sn76489::SN76489;
 use super::ym3438::YM3438;
+use super::pwm::PWM;
 
 pub struct VgmPlay {
     ym3438: YM3438,
     sn76489: SN76489,
+    pwm: PWM,
     sample_rate: f32,
     vgmpos: usize,
     datpos: usize,
@@ -43,6 +45,7 @@ impl VgmPlay {
         VgmPlay {
             ym3438: YM3438::default(),
             sn76489: SN76489::default(),
+            pwm: PWM::new(),
             sample_rate: 0_f32,
             vgmpos: 0,
             datpos: 0,
@@ -101,9 +104,11 @@ impl VgmPlay {
 
         let mut clock_sn76489 : u32;
         let mut clock_ym2612 : u32;
+        let mut clock_pwm: u32;
 
         self.vgmpos = 0x0c; clock_sn76489 = self.get_vgm_u32();
         self.vgmpos = 0x2C; clock_ym2612 = self.get_vgm_u32();
+        self.vgmpos = 0x70; clock_pwm = self.get_vgm_u32();
         self.vgmpos = 0x1c; self.vgm_loop = self.get_vgm_u32() as usize;
         self.vgmpos = 0x34; self.vgmpos = (0x34 + self.get_vgm_u32()) as usize;
 
@@ -115,11 +120,16 @@ impl VgmPlay {
         if clock_ym2612 == 0 {
             clock_ym2612 = 7_670_453;
         }
+        if clock_pwm == 0 {
+            clock_pwm = 23011360;
+        }
 
         self.ym3438.reset(clock_ym2612, sample_rate as u32);
 
         self.sn76489.init(clock_sn76489 as i32, sample_rate as i32);
         self.sn76489.reset();
+
+        self.pwm.device_start_pwm(0, clock_pwm as i32);
     }
 
     ///
@@ -199,6 +209,7 @@ impl VgmPlay {
         let command: u8;
         let reg: u8;
         let dat: u8;
+        let add: u8;
         let mut wait: u16 = 0;
 
         command = self.get_vgm_u8();
@@ -295,6 +306,15 @@ impl VgmPlay {
                 self.pcmpos = self.get_vgm_u32() as usize;
                 self.pcmoffset = 0;
             }
+            0xb2 => {
+                // 0xB2 ad dd
+                // PWM, write value ddd to register a (d is MSB, dd is LSB)
+                let raw1 = self.get_vgm_u8();
+                let raw2 = self.get_vgm_u8();
+                let channel = (raw1 & 0xf0 >> 4) as u8;
+                let data: u16 = (raw1 as u16 & 0x0f) << 8 | raw2 as u16;
+                self.pwm.pwm_chn_w(0, channel, data);
+            }
             _ => {
                 #[cfg(feature = "console_error_panic_hook")]
                 console_log!("unknown cmd at {:x}: {:x}", self.vgmpos - 1, self.vgmdata[self.vgmpos - 1]);
@@ -324,14 +344,14 @@ mod tests {
 
     const MAX_SAMPLING_SIZE: usize = 4096;
 
-    #[test]
-    fn sn76489_1() -> Result<(), Box<dyn std::error::Error>> {
-        play("../docs/vgm/sn76489.vgm")
-    }
+    // #[test]
+    // fn sn76489_1() -> Result<(), Box<dyn std::error::Error>> {
+    //     play("../docs/vgm/sn76489.vgm")
+    // }
 
     #[test]
     fn ym2612_1() -> Result<(), Box<dyn std::error::Error>> {
-        play("../docs/vgm/ym2612.vgm")
+        play("../docs/vgm/03 - Final Take Off.vgz")
     }
 
     fn play(filepath: &str) -> Result<(), Box<dyn std::error::Error>> {
