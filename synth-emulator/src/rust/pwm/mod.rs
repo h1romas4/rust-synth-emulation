@@ -227,7 +227,7 @@ impl PWM {
     }
 
     pub fn update(&self, chipid: usize, buffer_l: &mut [f32], buffer_r: &mut [f32], numsamples: usize, buffer_pos: usize) {
-        self.pwm_update(&self.pwm_chip[chipid], &mut buffer_l[buffer_pos..], &mut buffer_r[buffer_pos..],numsamples);
+        self.pwm_update(&self.pwm_chip[chipid], &mut buffer_l[buffer_pos..], &mut buffer_r[buffer_pos..], numsamples);
     }
 
     pub fn device_start_pwm(&mut self, chipid: usize, clock: i32) -> i32 {
