@@ -86,20 +86,23 @@ let onDrop = function(ev) {
     prevent(ev);
     canvas.removeEventListener('drop', onDrop, false);
     canvas.style.border = 'none';
-    playlist = [];
+    let filelist = {};
     let files = ev.dataTransfer.files;
-    for(let i = 0; i < files.length; i++) {
+    [].forEach.call(files, function(file) {
         let reader = new FileReader();
-        let number = i;
         reader.onload = function() {
-            playlist[number] = reader.result;
-            if(playlist.length >= files.length) {
+            filelist[file.name] = reader.result;
+            if(Object.keys(filelist).length >= files.length) {
                 canvas.addEventListener('drop', onDrop, false);
+                playlist = [];
+                Object.keys(filelist).sort().forEach(function(key) {
+                    playlist.push(filelist[key]);
+                });
                 next();
             }
         };
-        reader.readAsArrayBuffer(files[i]);
-    }
+        reader.readAsArrayBuffer(file);
+    });
     return false;
 };
 
