@@ -160,6 +160,7 @@ impl VgmPlay {
                     self.update_dac();
                 }
                 self.sn76489.update(&mut self.sampling_l, &mut self.sampling_r, 1, buffer_pos);
+                self.pwm.update(0, &mut self.sampling_l, &mut self.sampling_r, 1, buffer_pos);
                 self.ym3438.opn2_generate_stream(&mut self.sampling_l, &mut self.sampling_r, 1, buffer_pos);
                 if self.remain_frame_size > 0 {
                     self.remain_frame_size -= 1;
@@ -301,18 +302,18 @@ impl VgmPlay {
                 self.get_vgm_u16();
                 self.get_vgm_u8();
             }
-            0xe0 => {
-                self.pcmpos = self.get_vgm_u32() as usize;
-                self.pcmoffset = 0;
-            }
             0xb2 => {
                 // 0xB2 ad dd
                 // PWM, write value ddd to register a (d is MSB, dd is LSB)
                 let raw1 = self.get_vgm_u8();
                 let raw2 = self.get_vgm_u8();
-                let channel = (raw1 & 0xf0 >> 4) as u8;
+                let channel = (raw1 & 0xf0) >> 4 as u8;
                 let data: u16 = (raw1 as u16 & 0x0f) << 8 | raw2 as u16;
                 self.pwm.pwm_chn_w(0, channel, data);
+            }
+            0xe0 => {
+                self.pcmpos = self.get_vgm_u32() as usize;
+                self.pcmoffset = 0;
             }
             _ => {
                 #[cfg(feature = "console_error_panic_hook")]

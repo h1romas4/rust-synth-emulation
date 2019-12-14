@@ -342,7 +342,8 @@ void PWM_Update(pwm_chip* chip, int **buf, int length)
 }
 
 
-void pwm_update(UINT8 ChipID, stream_sample_t **outputs, int samples)
+// void pwm_update(UINT8 ChipID, stream_sample_t **outputs, int samples)
+void pwm_update(UINT8 ChipID, int **outputs, int samples)
 {
 	pwm_chip *chip = &PWM_Chip[ChipID];
 

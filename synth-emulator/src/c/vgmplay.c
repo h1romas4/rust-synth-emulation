@@ -37,10 +37,10 @@ SN76489_Context *sn76489;
 ym3438_t *ym3438;
 
 void vgm_load(void) {
-    vgm = (unsigned char *) malloc(3000000);
-    int fd = open("../../docs/vgm/ym2612.vgm", O_RDONLY);
+    vgm = (unsigned char *) malloc(30000000);
+    int fd = open("../../docs/vgm/pwm.vgm", O_RDONLY);
     assert(fd != -1);
-    read(fd, vgm, 3000000);
+    read(fd, vgm, 30000000);
     close(fd);
 
     vgmheader = (VGM_HEADER *)vgm;
@@ -62,19 +62,19 @@ void vgm_load(void) {
     printf("clock_ym2612 %d\n", clock_ym2612);
 }
 
-uint8_t get_vgm_ui8()
+uint8_t get_vgm_u8()
 {
     return vgm[vgmpos++];
 }
 
-uint16_t get_vgm_ui16()
+uint16_t get_vgm_u16()
 {
-    return get_vgm_ui8() + (get_vgm_ui8() << 8);
+    return get_vgm_u8() + (get_vgm_u8() << 8);
 }
 
-uint32_t get_vgm_ui32()
+uint32_t get_vgm_u32()
 {
-    return get_vgm_ui8() + (get_vgm_ui8() << 8) + (get_vgm_ui8() << 16) + (get_vgm_ui8() << 24);
+    return get_vgm_u8() + (get_vgm_u8() << 8) + (get_vgm_u8() << 16) + (get_vgm_u8() << 24);
 }
 
 uint16_t parse_vgm()
@@ -83,23 +83,27 @@ uint16_t parse_vgm()
     uint16_t wait = 0;
     uint8_t reg;
     uint8_t dat;
+    uint8_t raw1;
+    uint8_t raw2;
+    uint8_t channel;
+    uint16_t data;
 
-    command = get_vgm_ui8();
+    command = get_vgm_u8();
 
     switch (command) {
         case 0x50:
-            dat = get_vgm_ui8();
+            dat = get_vgm_u8();
             SN76489_Write(sn76489, dat);
             break;
         case 0x52:
         case 0x53:
-            reg = get_vgm_ui8();
-            dat = get_vgm_ui8();
+            reg = get_vgm_u8();
+            dat = get_vgm_u8();
             OPN2_WriteBuffered(ym3438, 0 + ((command & 1) << 1), reg);
             OPN2_WriteBuffered(ym3438, 1 + ((command & 1) << 1), dat);
             break;
         case 0x61:
-            wait = get_vgm_ui16();
+            wait = get_vgm_u16();
             break;
         case 0x62:
             wait = 735;
@@ -111,10 +115,10 @@ uint16_t parse_vgm()
             vgmend = true;
             break;
         case 0x67:
-            get_vgm_ui8(); // 0x66
-            get_vgm_ui8(); // 0x00 data type
+            get_vgm_u8(); // 0x66
+            get_vgm_u8(); // 0x00 data type
             datpos = vgmpos + 4;
-            vgmpos += get_vgm_ui32(); // size of data, in bytes
+            vgmpos += get_vgm_u32(); // size of data, in bytes
             break;
         case 0x70: case 0x71: case 0x72: case 0x73: case 0x74: case 0x75: case 0x76: case 0x77:
         case 0x78: case 0x79: case 0x7a: case 0x7b: case 0x7c: case 0x7d: case 0x7e: case 0x7f:
@@ -127,8 +131,33 @@ uint16_t parse_vgm()
             OPN2_WriteBuffered(ym3438, 1, vgm[datpos + pcmpos + pcmoffset]);
             pcmoffset++;
             break;
+        case 0x90:
+            // Setup Stream Control
+            get_vgm_u32();
+            break;
+        case 0x91:
+            // Set Stream Data
+            get_vgm_u32();
+            break;
+        case 0x92:
+            // Set Stream Frequency
+            get_vgm_u8();
+            get_vgm_u32();
+        case 0x93:
+            // Start Stream
+            get_vgm_u8();
+            get_vgm_u32();
+            get_vgm_u8();
+            get_vgm_u32();
+        case 0xb2:
+            raw1 = get_vgm_u8();
+            raw2 = get_vgm_u8();
+            channel = (raw1 & 0xf0) >> 4;
+            data = (raw1 & 0x0f) << 8 | raw2;
+            pwm_chn_w(0, channel, data);
+            break;
         case 0xe0:
-            pcmpos = get_vgm_ui32();
+            pcmpos = get_vgm_u32();
             pcmoffset = 0;
             break;
         default:
@@ -191,28 +220,18 @@ int main(void)
     int fd = open("../../docs/vgm/s16le.pcm", O_CREAT | O_WRONLY | O_TRUNC, 0666);
     assert(fd != -1);
 
-    int32_t last_frame_size;
-    int32_t update_frame_size;
     do {
         frame_size = parse_vgm();
-        last_frame_size = frame_size;
-        do {
-            if(last_frame_size > FRAME_SIZE_MAX) {
-                update_frame_size = FRAME_SIZE_MAX;
-            } else {
-                update_frame_size = last_frame_size;
-            }
-            // get sampling
-            SN76489_Update(sn76489, (int **)buflr, update_frame_size);
-            OPN2_GenerateStream(ym3438, (int **)buflr, update_frame_size);
-            for(uint32_t i = 0; i < update_frame_size; i++) {
-                short d[STEREO];
-                d[0] = audio_write_sound_stereo(buflr[0][i]);
-                d[1] = audio_write_sound_stereo(buflr[1][i]);
-                write(fd, d, sizeof(short) * STEREO);
-            }
-            last_frame_size -= FRAME_SIZE_MAX;
-        } while(last_frame_size > 0);
+        // get sampling
+        for(uint32_t i = 0; i < frame_size; i++) {
+            SN76489_Update(sn76489, (int **)buflr, 1);
+            pwm_update(0, (int **)buflr, 1);
+            OPN2_GenerateStream(ym3438, (int **)buflr, 1);
+            short d[STEREO];
+            d[0] = audio_write_sound_stereo(buflr[0][0]);
+            d[1] = audio_write_sound_stereo(buflr[1][0]);
+            write(fd, d, sizeof(short) * STEREO);
+        }
         frame_all += frame_size;
     } while(!vgmend);
 

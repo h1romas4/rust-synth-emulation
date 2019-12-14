@@ -52,7 +52,8 @@ extern unsigned int PWM_Out_L;*/
 //void PWM_Update(int **buf, int length);
 
 
-void pwm_update(UINT8 ChipID, stream_sample_t **outputs, int samples);
+// void pwm_update(UINT8 ChipID, stream_sample_t **outputs, int samples);
+void pwm_update(UINT8 ChipID, int **outputs, int samples);
 
 int device_start_pwm(UINT8 ChipID, int clock);
 void device_stop_pwm(UINT8 ChipID);
