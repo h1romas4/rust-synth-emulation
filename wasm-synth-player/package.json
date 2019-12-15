@@ -7,17 +7,17 @@
         "wasm-vgm-player": "file:./pkg"
     },
     "devDependencies": {
+        "@babel/core": "^7.7.5",
+        "@babel/preset-env": "^7.7.6",
+        "babel-eslint": "^10.0.3",
+        "babel-loader": "^8.0.6",
+        "copy-webpack-plugin": "^5.1.1",
+        "eslint": "^6.7.2",
+        "htmlhint": "^0.11.0",
         "webpack": "^4.41.2",
         "webpack-cli": "^3.3.10",
         "webpack-dev-server": "^3.9.0",
-        "webpack-merge": "^4.2.2",
-        "babel-loader": "^8.0.6",
-        "@babel/core": "^7.7.5",
-        "@babel/preset-env": "^7.7.5",
-        "babel-eslint": "^10.0.3",
-        "copy-webpack-plugin": "^5.0.5",
-        "eslint": "^6.7.2",
-        "htmlhint": "^0.11.0"
+        "webpack-merge": "^4.2.2"
     },
     "scripts": {
         "build": "webpack --config webpack.config.js",
