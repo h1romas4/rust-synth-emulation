@@ -41,3 +41,4 @@ http://localhost:9000/
 
 * [Nuked-OPN2](https://github.com/nukeykt/Nuked-OPN2)
 * [sn76489.c](https://github.com/vgmrips/vgmplay/blob/master/VGMPlay/chips/sn76489.c)
+* [pwm.c](https://github.com/vgmrips/vgmplay/blob/master/VGMPlay/chips/pwm.c)
