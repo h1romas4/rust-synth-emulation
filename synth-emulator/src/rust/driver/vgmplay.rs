@@ -1,9 +1,9 @@
 use std::io::prelude::*;
 use flate2::read::GzDecoder;
 
-use crate::vgmplay::metadata::parse_vgm_meta;
-use crate::vgmplay::metadata::VgmHeader;
-use crate::vgmplay::metadata::GD3;
+use crate::driver::metadata::parse_vgm_meta;
+use crate::driver::metadata::VgmHeader;
+use crate::driver::metadata::Gd3;
 use crate::sn76489::SN76489;
 use crate::ym3438::YM3438;
 use crate::pwm::PWM;
@@ -34,7 +34,7 @@ pub struct VgmPlay {
     sampling_l: Vec<f32>,
     sampling_r: Vec<f32>,
     vgm_header: VgmHeader,
-    vgm_gd3: GD3
+    vgm_gd3: Gd3
 }
 
 #[allow(dead_code)]
@@ -74,7 +74,7 @@ impl VgmPlay {
             sampling_l: vec![0_f32; max_sampling_size],
             sampling_r: vec![0_f32; max_sampling_size],
             vgm_header: VgmHeader::default(),
-            vgm_gd3: GD3::default()
+            vgm_gd3: Gd3::default()
         }
     }
 
@@ -102,8 +102,22 @@ impl VgmPlay {
     ///
     /// get_vgm_meta
     ///
-    pub fn get_vgm_meta(&self) -> (&VgmHeader, &GD3) {
+    pub fn get_vgm_meta(&self) -> (&VgmHeader, &Gd3) {
         (&self.vgm_header, &self.vgm_gd3)
+    }
+
+    ///
+    /// get_vgm_header_json
+    ///
+    pub fn get_vgm_header_json(&self) -> String {
+        self.vgm_header.get_json()
+    }
+
+    ///
+    /// get_vgm_header_json
+    ///
+    pub fn get_vgm_gd3_json(&self) -> String {
+        self.vgm_gd3.get_json()
     }
 
     ///

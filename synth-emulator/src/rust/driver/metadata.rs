@@ -5,7 +5,7 @@ use nom::IResult;
 ///
 /// https://vgmrips.net/wiki/VGM_Specification
 ///
-#[derive(Default, Debug)]
+#[derive(Deserialize, Serialize, Default, Debug)]
 pub struct VgmHeader {
     pub eof: u32,
     pub version: u32,
@@ -84,11 +84,29 @@ pub struct VgmHeader {
     pub reserved10: u32
 }
 
+impl VgmHeader {
+    pub fn get_json(&self) -> String {
+        match serde_json::to_string(&self) {
+            Ok(json) => json,
+            Err(_) => String::from("")
+        }
+    }
+}
+
+impl Gd3 {
+    pub fn get_json(&self) -> String {
+        match serde_json::to_string(&self) {
+            Ok(json) => json,
+            Err(_) => String::from("")
+        }
+    }
+}
+
 ///
 /// https://vgmrips.net/wiki/GD3_Specification
 ///
-#[derive(Default, Debug)]
-pub struct GD3 {
+#[derive(Deserialize, Serialize, Default, Debug)]
+pub struct Gd3 {
     pub track_name: String,
     pub track_name_j: String,
     pub game_name: String,
@@ -336,7 +354,7 @@ fn parse_utf16_until_null(i: &[u8]) -> IResult<&[u8], String> {
 ///
 /// parse_vgm_gd3
 ///
-fn parse_vgm_gd3(i: &[u8]) -> IResult<&[u8], GD3> {
+fn parse_vgm_gd3(i: &[u8]) -> IResult<&[u8], Gd3> {
     let (i, _) = tag("Gd3 ")(i)?;
     let (i, _) = take(4usize)(i)?; // version
     let (i, _) = take(4usize)(i)?; // length
@@ -352,7 +370,7 @@ fn parse_vgm_gd3(i: &[u8]) -> IResult<&[u8], GD3> {
     let (i, date) = parse_utf16_until_null(i)?;
     let (i, converted) = parse_utf16_until_null(i)?;
 
-    Ok((i, GD3 {
+    Ok((i, Gd3 {
         track_name,
         track_name_j,
         game_name,
@@ -369,7 +387,7 @@ fn parse_vgm_gd3(i: &[u8]) -> IResult<&[u8], GD3> {
 ///
 /// parse_vgm_meta
 ///
-pub fn parse_vgm_meta(vgmdata: &[u8]) -> Result<(VgmHeader, GD3), &'static str> {
+pub fn parse_vgm_meta(vgmdata: &[u8]) -> Result<(VgmHeader, Gd3), &'static str> {
     let header = match parse_vgm_header(&vgmdata[..255]) {
         Ok((_, header)) => header,
         Err(_) => {
@@ -378,7 +396,7 @@ pub fn parse_vgm_meta(vgmdata: &[u8]) -> Result<(VgmHeader, GD3), &'static str> 
     };
     let gd3 = match parse_vgm_gd3(&vgmdata[(0x14 + header.offset_gd3 as usize)..]) {
         Ok((_, gd3)) => gd3,
-        Err(_) => GD3::default() // blank values
+        Err(_) => Gd3::default() // blank values
     };
 
     Ok((header, gd3))
@@ -404,5 +422,7 @@ mod tests {
 
         println!("{:#?}", header);
         println!("{:#?}", gd3);
+        println!("{:#?}", header.get_json());
+        println!("{:#?}", gd3.get_json());
     }
 }

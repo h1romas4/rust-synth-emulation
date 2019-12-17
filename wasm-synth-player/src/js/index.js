@@ -18,6 +18,8 @@ let samplingBufferL;
 let samplingBufferR;
 let feedOutCount = 0;
 let playlist = [];
+let totalPlaylistCount;
+let vgm_gd3;
 
 /**
  * audio context
@@ -98,6 +100,7 @@ let onDrop = function(ev) {
                 Object.keys(filelist).sort().forEach(function(key) {
                     playlist.push(filelist[key]);
                 });
+                totalPlaylistCount = playlist.length;
                 next();
             }
         };
@@ -111,8 +114,11 @@ let onDrop = function(ev) {
  */
 let next = function() {
     if(playlist.length <= 0) return;
-    init(playlist.shift());
-    play();
+    if(init(playlist.shift())) {
+        play();
+    } else {
+        next();
+    }
 }
 
 /**
@@ -127,9 +133,30 @@ let init = function(bytes) {
     vgmdata = new Uint8Array(memory.buffer, vgmplay.get_vgmdata_ref(), bytes.byteLength);
     vgmdata.set(new Uint8Array(bytes));
     // init player
-    vgmplay.init(SAMPLING_RATE);
+    if(!vgmplay.init(SAMPLING_RATE)) return false;
     samplingBufferL = new Float32Array(memory.buffer, vgmplay.get_sampling_l_ref(), MAX_SAMPLING_BUFFER);
     samplingBufferR = new Float32Array(memory.buffer, vgmplay.get_sampling_r_ref(), MAX_SAMPLING_BUFFER);
+
+    vgm_gd3 = JSON.parse(vgmplay.get_vgm_gd3());
+
+    vgm_gd3.game_track_name = vgm_gd3.game_name;
+    if(vgm_gd3.track_name != "") {
+        vgm_gd3.game_track_name += " | " + vgm_gd3.track_name;
+    }
+    vgm_gd3.game_track_name_j = vgm_gd3.game_name_j;
+    if(vgm_gd3.track_name_j != "") {
+        vgm_gd3.game_track_name_j += " / " + vgm_gd3.track_name_j;
+    }
+    vgm_gd3.track_author_full = vgm_gd3.track_author;
+    if(vgm_gd3.track_author_j != "") {
+        vgm_gd3.track_author_full += " - " + vgm_gd3.track_author_j;
+    }
+    canvasContext.font = "16px sans-serif";
+    vgm_gd3.game_track_name_left = (CANVAS_WIDTH - canvasContext.measureText(vgm_gd3.game_track_name).width) / 2;
+    vgm_gd3.game_track_name_j_left = (CANVAS_WIDTH - canvasContext.measureText(vgm_gd3.game_track_name_j).width) / 2;
+    vgm_gd3.track_author_full_left = (CANVAS_WIDTH - canvasContext.measureText(vgm_gd3.track_author_full).width) / 2;
+
+    return true;
 }
 
 /**
@@ -203,4 +230,16 @@ let draw = function() {
         canvasContext.rect(width * i, CANVAS_HEIGHT, width, -y * 1.5);
     }
     canvasContext.stroke();
+
+    canvasContext.font = "12px sans-serif";
+    canvasContext.fillStyle = "#00ff00";
+    if(totalPlaylistCount >= 1) {
+        let counter = "Track " + (totalPlaylistCount - playlist.length) + " / " + totalPlaylistCount;
+        let counter_left = (CANVAS_WIDTH - canvasContext.measureText(counter).width) / 2;
+        canvasContext.fillText(counter, counter_left, CANVAS_HEIGHT / 2 - 96);
+    }
+    canvasContext.font = "16px sans-serif";
+    canvasContext.fillText(vgm_gd3.game_track_name, vgm_gd3.game_track_name_left, CANVAS_HEIGHT / 2 - 64);
+    canvasContext.fillText(vgm_gd3.game_track_name_j, vgm_gd3.game_track_name_j_left, CANVAS_HEIGHT / 2 - 32);
+    canvasContext.fillText(vgm_gd3.track_author_full, vgm_gd3.track_author_full_left, CANVAS_HEIGHT / 2);
 }

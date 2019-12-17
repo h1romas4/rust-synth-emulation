@@ -1,5 +1,5 @@
 use wasm_bindgen::prelude::*;
-use synth_emulator::vgmplay::vgmplay::VgmPlay;
+use synth_emulator::driver::vgmplay::VgmPlay;
 
 #[wasm_bindgen]
 extern "C" {
@@ -52,13 +52,27 @@ impl WasmVgmPlay {
     }
 
     ///
+    /// get_vgm_header
+    ///
+    pub fn get_vgm_header(&self) -> String {
+        self.vgmplay.get_vgm_header_json()
+    }
+
+    ///
+    /// get_vgm_gd3
+    ///
+    pub fn get_vgm_gd3(&self) -> String {
+        self.vgmplay.get_vgm_gd3_json()
+    }
+
+    ///
     /// Initialize sound driver.
     ///
     /// # Arguments
     /// sample_rate - WebAudio sampling rate
     ///
-    pub fn init(&mut self, sample_rate: f32) {
-        self.vgmplay.init(sample_rate);
+    pub fn init(&mut self, sample_rate: f32) -> bool {
+        self.vgmplay.init(sample_rate)
     }
 
     ///
