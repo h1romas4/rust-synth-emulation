@@ -75,10 +75,6 @@ fetch('./vgm/ym2612.vgm')
  * startScreen
  */
 let startScreen = function() {
-    if(animId != null) {
-        cancelAnimationFrame(animId);
-        animId = null;
-    }
     canvasContext.fillStyle = 'rgb(0, 0, 0)';
     canvasContext.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
     canvasContext.font = "24px monospace";
@@ -127,10 +123,7 @@ let onDrop = function(ev) {
  * play next playlist
  */
 let next = function() {
-    if(playlist.length <= 0) {
-        startScreen();
-        return;
-    }
+    if(playlist.length <= 0) return;
     if(init(playlist.shift())) {
         play();
     } else {
@@ -237,11 +230,15 @@ let play = function() {
     audioAnalyserBuffer = new Uint8Array(audioAnalyserBufferLength);
     audioAnalyser.getByteTimeDomainData(audioAnalyserBuffer);
     audioGain.connect(audioAnalyser);
+    if(animId != null) {
+        window.cancelAnimationFrame(animId);
+        animId = null;
+    }
     draw();
 };
 
 let draw = function() {
-    animId = requestAnimationFrame(draw);
+    animId = window.requestAnimationFrame(draw);
     canvasContext.fillStyle = 'rgb(0, 0, 0)';
     canvasContext.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
     if(audioAnalyser != null) {
