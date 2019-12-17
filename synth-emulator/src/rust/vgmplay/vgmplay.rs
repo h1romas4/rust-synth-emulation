@@ -1,9 +1,12 @@
 use std::io::prelude::*;
 use flate2::read::GzDecoder;
 
-use super::sn76489::SN76489;
-use super::ym3438::YM3438;
-use super::pwm::PWM;
+use crate::vgmplay::metadata::parse_vgm_meta;
+use crate::vgmplay::metadata::VgmHeader;
+use crate::vgmplay::metadata::GD3;
+use crate::sn76489::SN76489;
+use crate::ym3438::YM3438;
+use crate::pwm::PWM;
 
 pub struct VgmPlay {
     ym3438: YM3438,
@@ -29,9 +32,12 @@ pub struct VgmPlay {
     vgmdata: Vec<u8>,
     max_sampling_size: usize,
     sampling_l: Vec<f32>,
-    sampling_r: Vec<f32>
+    sampling_r: Vec<f32>,
+    vgm_header: VgmHeader,
+    vgm_gd3: GD3
 }
 
+#[allow(dead_code)]
 impl VgmPlay {
     ///
     /// Create sound driver.
@@ -66,7 +72,9 @@ impl VgmPlay {
             vgmdata: Vec::new(),
             max_sampling_size: max_sampling_size,
             sampling_l: vec![0_f32; max_sampling_size],
-            sampling_r: vec![0_f32; max_sampling_size]
+            sampling_r: vec![0_f32; max_sampling_size],
+            vgm_header: VgmHeader::default(),
+            vgm_gd3: GD3::default()
         }
     }
 
@@ -92,28 +100,42 @@ impl VgmPlay {
     }
 
     ///
+    /// get_vgm_meta
+    ///
+    pub fn get_vgm_meta(&self) -> (&VgmHeader, &GD3) {
+        (&self.vgm_header, &self.vgm_gd3)
+    }
+
+    ///
     /// extract vgz and initialize sound driver.
     ///
     /// # Arguments
     /// sample_rate - WebAudio sampling rate
     ///
-    pub fn init(&mut self, sample_rate: f32) {
+    pub fn init(&mut self, sample_rate: f32) -> bool {
         self.sample_rate = sample_rate;
 
         self.extract();
 
-        let mut clock_sn76489 : u32;
-        let mut clock_ym2612 : u32;
-        let mut clock_pwm: u32;
+        match parse_vgm_meta(&self.vgmdata) {
+            Ok((header, gd3)) => {
+                self.vgm_header = header;
+                self.vgm_gd3 = gd3;
+            }
+            Err(_) => return false
+        };
 
-        self.vgmpos = 0x0c; clock_sn76489 = self.get_vgm_u32();
-        self.vgmpos = 0x2C; clock_ym2612 = self.get_vgm_u32();
-        self.vgmpos = 0x70; clock_pwm = self.get_vgm_u32();
-        self.vgmpos = 0x1c; self.vgm_loop = self.get_vgm_u32() as usize;
-        self.vgmpos = 0x34; self.vgmpos = (0x34 + self.get_vgm_u32()) as usize;
+        let mut clock_sn76489 : u32 = self.vgm_header.clock_sn76489;
+        let mut clock_ym2612 : u32 = self.vgm_header.clock_ym2612;
+        let mut clock_pwm: u32 = self.vgm_header.clock_pwm;
+        self.vgm_loop = self.vgm_header.offset_loop as usize;
+        self.vgm_loop_offset = (0x1c + self.vgm_header.offset_loop) as usize;
+        self.vgmpos = (0x34 + self.vgm_header.vgm_data_offset) as usize;
 
-        self.vgm_loop_offset = self.vgm_loop + 0x1c;
-
+        // TODO: MEGADRIVE default values
+        if clock_sn76489 == 0 && clock_ym2612 == 0 && clock_pwm == 0 {
+            return false;
+        }
         if clock_sn76489 == 0 {
             clock_sn76489 = 3_579_545;
         }
@@ -121,15 +143,16 @@ impl VgmPlay {
             clock_ym2612 = 7_670_453;
         }
         if clock_pwm == 0 {
-            clock_pwm = 23011360;
+            clock_pwm = 23_011_360;
         }
 
+        // init sound chip
         self.ym3438.reset(clock_ym2612, sample_rate as u32);
-
         self.sn76489.init(clock_sn76489 as i32, sample_rate as i32);
         self.sn76489.reset();
-
         self.pwm.device_start_pwm(0, clock_pwm as i32);
+
+        true
     }
 
     ///
@@ -345,20 +368,20 @@ mod tests {
     const MAX_SAMPLING_SIZE: usize = 4096;
 
     #[test]
-    fn sn76489_1() -> Result<(), Box<dyn std::error::Error>> {
+    fn sn76489_1() {
         play("../docs/vgm/sn76489.vgm")
     }
 
     #[test]
-    fn ym2612_1() -> Result<(), Box<dyn std::error::Error>> {
+    fn ym2612_1() {
         play("../docs/vgm/ym2612.vgm")
     }
 
-    fn play(filepath: &str) -> Result<(), Box<dyn std::error::Error>> {
+    fn play(filepath: &str) {
         // load sn76489 vgm file
-        let mut file = File::open(filepath)?;
+        let mut file = File::open(filepath).unwrap();
         let mut buffer = Vec::new();
-        let _ = file.read_to_end(&mut buffer)?;
+        let _ = file.read_to_end(&mut buffer).unwrap();
 
         let mut vgmplay = VgmPlay::new(MAX_SAMPLING_SIZE, file.metadata().unwrap().len() as usize);
         // set vgmdata
@@ -373,7 +396,5 @@ mod tests {
         vgmplay.init(44100_f32);
         // play
         while vgmplay.play(false) <= 0 {}
-
-        Ok(())
     }
 }

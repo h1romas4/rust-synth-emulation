@@ -1,5 +1,5 @@
 use wasm_bindgen::prelude::*;
-use synth_emulator::vgmplay::VgmPlay;
+use synth_emulator::vgmplay::vgmplay::VgmPlay;
 
 #[wasm_bindgen]
 extern "C" {
