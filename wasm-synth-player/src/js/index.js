@@ -35,6 +35,7 @@ let audioAnalyserBufferLength;
 // canvas member
 let canvas;
 let canvasContext;
+let animId = null;
 
 // canvas setting
 canvas = document.getElementById('screen');
@@ -67,11 +68,24 @@ fetch('./vgm/ym2612.vgm')
         });
         canvas.addEventListener('drop', onDrop, false);
         // ready to go
-        canvasContext.font = "24px monospace";
-        canvasContext.fillStyle = "#fff";
-        canvasContext.fillText("DRAG AND DROP MEGADRIVE/GENESIS VGM(vgm/vgz) HEAR!", 80, 300);
-        canvasContext.fillText("OR CLICK TO PLAY SAMPLE VGM.", 200, 332);
+        startScreen();
     });
+
+/**
+ * startScreen
+ */
+let startScreen = function() {
+    if(animId != null) {
+        cancelAnimationFrame(animId);
+        animId = null;
+    }
+    canvasContext.fillStyle = 'rgb(0, 0, 0)';
+    canvasContext.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    canvasContext.font = "24px monospace";
+    canvasContext.fillStyle = "#fff";
+    canvasContext.fillText("DRAG AND DROP MEGADRIVE/GENESIS VGM(vgm/vgz) HEAR!", 80, 300);
+    canvasContext.fillText("OR CLICK TO PLAY SAMPLE VGM.", 200, 332);
+}
 
 /**
  * event prevent
@@ -113,7 +127,10 @@ let onDrop = function(ev) {
  * play next playlist
  */
 let next = function() {
-    if(playlist.length <= 0) return;
+    if(playlist.length <= 0) {
+        startScreen();
+        return;
+    }
     if(init(playlist.shift())) {
         play();
     } else {
@@ -166,9 +183,11 @@ let disconnect = function() {
     if(audioAnalyser != null) audioAnalyser.disconnect();
     if(audioGain != null) audioGain.disconnect();
     if(audioNode != null) audioNode.disconnect();
+    if(audioContext != null) audioContext.close();
     audioAnalyser = null; // GC
     audioNode = null; // GC
     audioGain = null; // GC
+    audioContext = null;
 }
 
 /**
@@ -222,25 +241,25 @@ let play = function() {
 };
 
 let draw = function() {
-    requestAnimationFrame(draw);
-
-    audioAnalyser.getByteFrequencyData(audioAnalyserBuffer);
-
+    animId = requestAnimationFrame(draw);
     canvasContext.fillStyle = 'rgb(0, 0, 0)';
     canvasContext.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    if(audioAnalyser != null) {
+        audioAnalyser.getByteFrequencyData(audioAnalyserBuffer);
 
-    canvasContext.lineWidth = 1;
-    canvasContext.beginPath();
-    canvasContext.strokeStyle = 'rgb(0, 0, 255)';
+        canvasContext.lineWidth = 1;
+        canvasContext.beginPath();
+        canvasContext.strokeStyle = 'rgb(0, 0, 255)';
 
-    var width = CANVAS_WIDTH * 1.0 / audioAnalyserBufferLength;
+        var width = CANVAS_WIDTH * 1.0 / audioAnalyserBufferLength;
 
-    for(var i = 0; i < audioAnalyserBufferLength; i++) {
-        var v = audioAnalyserBuffer[i] / 255;
-        var y = v * CANVAS_HEIGHT / 2;
-        canvasContext.rect(width * i, CANVAS_HEIGHT, width, -y * 1.5);
+        for(var i = 0; i < audioAnalyserBufferLength; i++) {
+            var v = audioAnalyserBuffer[i] / 255;
+            var y = v * CANVAS_HEIGHT / 2;
+            canvasContext.rect(width * i, CANVAS_HEIGHT, width, -y * 1.5);
+        }
+        canvasContext.stroke();
     }
-    canvasContext.stroke();
 
     canvasContext.font = "12px sans-serif";
     canvasContext.fillStyle = "#00ff00";
