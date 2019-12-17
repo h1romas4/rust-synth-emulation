@@ -160,13 +160,24 @@ let init = function(bytes) {
 }
 
 /**
+ * disconnect
+ */
+let disconnect = function() {
+    if(audioAnalyser != null) audioAnalyser.disconnect();
+    if(audioGain != null) audioGain.disconnect();
+    if(audioNode != null) audioNode.disconnect();
+    audioAnalyser = null; // GC
+    audioNode = null; // GC
+    audioGain = null; // GC
+}
+
+/**
  * play
  */
 let play = function() {
     canvas.removeEventListener('click', play, false);
     // init audio
-    if(audioNode != null) audioNode.disconnect();
-    if(audioContext != null) audioContext.close();
+    disconnect();
     audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: SAMPLING_RATE });
     audioNode = audioContext.createScriptProcessor(MAX_SAMPLING_BUFFER, 2, 2);
     feedOutCount = 0;
@@ -192,7 +203,7 @@ let play = function() {
             }
         }
         if(stop) {
-            audioNode.disconnect();
+            disconnect();
             next();
         }
     };
