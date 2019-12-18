@@ -149,18 +149,9 @@ let init = function(bytes) {
 
     vgm_gd3 = JSON.parse(vgmplay.get_vgm_gd3());
 
-    vgm_gd3.game_track_name = vgm_gd3.game_name;
-    if(vgm_gd3.track_name != "") {
-        vgm_gd3.game_track_name += " | " + vgm_gd3.track_name;
-    }
-    vgm_gd3.game_track_name_j = vgm_gd3.game_name_j;
-    if(vgm_gd3.track_name_j != "") {
-        vgm_gd3.game_track_name_j += " / " + vgm_gd3.track_name_j;
-    }
-    vgm_gd3.track_author_full = vgm_gd3.track_author;
-    if(vgm_gd3.track_author_j != "") {
-        vgm_gd3.track_author_full += " - " + vgm_gd3.track_author_j;
-    }
+    vgm_gd3.game_track_name = [vgm_gd3.game_name, vgm_gd3.track_name].filter(str => str != "").join(" | ");
+    vgm_gd3.game_track_name_j = [vgm_gd3.game_name_j, vgm_gd3.track_name_j].filter(str => str != "").join(" / ");
+    vgm_gd3.track_author_full = [vgm_gd3.track_author, vgm_gd3.track_author_j].filter(str => str != "").join(" - ");
     canvasContext.font = "16px sans-serif";
     vgm_gd3.game_track_name_left = (CANVAS_WIDTH - canvasContext.measureText(vgm_gd3.game_track_name).width) / 2;
     vgm_gd3.game_track_name_j_left = (CANVAS_WIDTH - canvasContext.measureText(vgm_gd3.game_track_name_j).width) / 2;
