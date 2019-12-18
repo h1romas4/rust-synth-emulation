@@ -246,7 +246,7 @@ let draw = function() {
 
         canvasContext.lineWidth = 1;
         canvasContext.beginPath();
-        canvasContext.strokeStyle = 'rgb(0, 0, 255)';
+        canvasContext.strokeStyle = '#e60012';
 
         var width = CANVAS_WIDTH * 1.0 / audioAnalyserBufferLength;
 
@@ -259,7 +259,7 @@ let draw = function() {
     }
 
     canvasContext.font = "12px sans-serif";
-    canvasContext.fillStyle = "#00ff00";
+    canvasContext.fillStyle = "#00a040";
     if(totalPlaylistCount >= 1) {
         let counter = "Track " + (totalPlaylistCount - playlist.length) + " / " + totalPlaylistCount;
         let counter_left = (CANVAS_WIDTH - canvasContext.measureText(counter).width) / 2;
