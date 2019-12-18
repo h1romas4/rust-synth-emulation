@@ -10,6 +10,9 @@ const FEED_OUT_REMAIN = (SAMPLING_RATE * FEED_OUT_SECOND) / MAX_SAMPLING_BUFFER;
 // canvas settings
 const CANVAS_WIDTH = 768;
 const CANVAS_HEIGHT = 576;
+const COLOR_MD_GREEN = '#00a040';
+const COLOR_MD_RED = '#e60012';
+const FONT_MAIN_STYLE = '16px sans-serif';
 
 // vgm member
 let vgmplay = null;
@@ -49,7 +52,7 @@ if(pixelRatio > 1 && window.screen.width < CANVAS_WIDTH) {
 canvasContext = canvas.getContext('2d');
 
 /**
- * load vgm data
+ * load sample vgm data
  */
 fetch('./vgm/ym2612.vgm')
     .then(response => response.arrayBuffer())
@@ -67,9 +70,27 @@ fetch('./vgm/ym2612.vgm')
             return false;
         });
         canvas.addEventListener('drop', onDrop, false);
+        // for sample vgm
+        totalPlaylistCount = 1;
+        createGd3meta({
+            track_name: "MEGADRIVE/GENESIS VGM(vgm/vgz) Player",
+            track_name_j: "",
+            game_name: "",
+            game_name_j: "YM2612 sample VGM",
+            track_author: "@h1romas4",
+            track_author_j: ""
+        });
         // ready to go
         startScreen();
     });
+
+/**
+ * fillTextCenterd
+ */
+let fillTextCenterd = function(str, height) {
+    let left = (CANVAS_WIDTH - canvasContext.measureText(str).width) / 2;
+    canvasContext.fillText(str, left, height);
+}
 
 /**
  * startScreen
@@ -77,11 +98,11 @@ fetch('./vgm/ym2612.vgm')
 let startScreen = function() {
     canvasContext.fillStyle = 'rgb(0, 0, 0)';
     canvasContext.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-    canvasContext.font = "24px monospace";
-    canvasContext.fillStyle = "#fff";
-    canvasContext.fillText("DRAG AND DROP MEGADRIVE/GENESIS VGM(vgm/vgz) HEAR!", 80, 300);
-    canvasContext.fillText("OR CLICK TO PLAY SAMPLE VGM.", 200, 332);
-}
+    canvasContext.font = '20px sans-serif';
+    canvasContext.fillStyle = COLOR_MD_GREEN;
+    fillTextCenterd("DRAG AND DROP MEGADRIVE/GENESIS VGM(vgm/vgz) HEAR!", CANVAS_HEIGHT / 2 - 64);
+    fillTextCenterd("OR CLICK TO PLAY SAMPLE VGM.", CANVAS_HEIGHT / 2 - 32);
+};
 
 /**
  * event prevent
@@ -131,6 +152,17 @@ let next = function() {
     }
 }
 
+let createGd3meta = function(gd3) {
+    vgm_gd3 = gd3;
+    vgm_gd3.game_track_name = [vgm_gd3.game_name, vgm_gd3.track_name].filter(str => str != "").join(" | ");
+    vgm_gd3.game_track_name_j = [vgm_gd3.game_name_j, vgm_gd3.track_name_j].filter(str => str != "").join(" / ");
+    vgm_gd3.track_author_full = [vgm_gd3.track_author, vgm_gd3.track_author_j].filter(str => str != "").join(" - ");
+    canvasContext.font = FONT_MAIN_STYLE;
+    vgm_gd3.game_track_name_left = (CANVAS_WIDTH - canvasContext.measureText(vgm_gd3.game_track_name).width) / 2;
+    vgm_gd3.game_track_name_j_left = (CANVAS_WIDTH - canvasContext.measureText(vgm_gd3.game_track_name_j).width) / 2;
+    vgm_gd3.track_author_full_left = (CANVAS_WIDTH - canvasContext.measureText(vgm_gd3.track_author_full).width) / 2;
+};
+
 /**
  * init
  * @param ArrayBuffer bytes
@@ -147,15 +179,7 @@ let init = function(bytes) {
     samplingBufferL = new Float32Array(memory.buffer, vgmplay.get_sampling_l_ref(), MAX_SAMPLING_BUFFER);
     samplingBufferR = new Float32Array(memory.buffer, vgmplay.get_sampling_r_ref(), MAX_SAMPLING_BUFFER);
 
-    vgm_gd3 = JSON.parse(vgmplay.get_vgm_gd3());
-
-    vgm_gd3.game_track_name = [vgm_gd3.game_name, vgm_gd3.track_name].filter(str => str != "").join(" | ");
-    vgm_gd3.game_track_name_j = [vgm_gd3.game_name_j, vgm_gd3.track_name_j].filter(str => str != "").join(" / ");
-    vgm_gd3.track_author_full = [vgm_gd3.track_author, vgm_gd3.track_author_j].filter(str => str != "").join(" - ");
-    canvasContext.font = "16px sans-serif";
-    vgm_gd3.game_track_name_left = (CANVAS_WIDTH - canvasContext.measureText(vgm_gd3.game_track_name).width) / 2;
-    vgm_gd3.game_track_name_j_left = (CANVAS_WIDTH - canvasContext.measureText(vgm_gd3.game_track_name_j).width) / 2;
-    vgm_gd3.track_author_full_left = (CANVAS_WIDTH - canvasContext.measureText(vgm_gd3.track_author_full).width) / 2;
+    createGd3meta(JSON.parse(vgmplay.get_vgm_gd3()));
 
     return true;
 }
@@ -237,7 +261,7 @@ let draw = function() {
 
         canvasContext.lineWidth = 1;
         canvasContext.beginPath();
-        canvasContext.strokeStyle = '#e60012';
+        canvasContext.strokeStyle = COLOR_MD_RED;
 
         var width = CANVAS_WIDTH * 1.0 / audioAnalyserBufferLength;
 
@@ -249,14 +273,12 @@ let draw = function() {
         canvasContext.stroke();
     }
 
-    canvasContext.font = "12px sans-serif";
-    canvasContext.fillStyle = "#00a040";
+    canvasContext.font = "12px monospace";
+    canvasContext.fillStyle = COLOR_MD_GREEN;
     if(totalPlaylistCount >= 1) {
-        let counter = "Track " + (totalPlaylistCount - playlist.length) + " / " + totalPlaylistCount;
-        let counter_left = (CANVAS_WIDTH - canvasContext.measureText(counter).width) / 2;
-        canvasContext.fillText(counter, counter_left, CANVAS_HEIGHT / 2 - 96);
+        fillTextCenterd("Track " + (totalPlaylistCount - playlist.length) + " / " + totalPlaylistCount, CANVAS_HEIGHT / 2 - 96);
     }
-    canvasContext.font = "16px sans-serif";
+    canvasContext.font = FONT_MAIN_STYLE;
     canvasContext.fillText(vgm_gd3.game_track_name, vgm_gd3.game_track_name_left, CANVAS_HEIGHT / 2 - 64);
     canvasContext.fillText(vgm_gd3.game_track_name_j, vgm_gd3.game_track_name_j_left, CANVAS_HEIGHT / 2 - 32);
     canvasContext.fillText(vgm_gd3.track_author_full, vgm_gd3.track_author_full_left, CANVAS_HEIGHT / 2);
