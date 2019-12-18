@@ -263,12 +263,14 @@ let draw = function() {
         canvasContext.beginPath();
         canvasContext.strokeStyle = COLOR_MD_RED;
 
-        var width = CANVAS_WIDTH * 1.0 / audioAnalyserBufferLength;
-
-        for(var i = 0; i < audioAnalyserBufferLength; i++) {
-            var v = audioAnalyserBuffer[i] / 255;
-            var y = v * CANVAS_HEIGHT / 2;
-            canvasContext.rect(width * i, CANVAS_HEIGHT, width, -y * 1.5);
+        let width = 8;
+        canvasContext.setLineDash([2, 1]);
+        canvasContext.lineWidth = width - 2;
+        for(var i = 0; i < audioAnalyserBufferLength; i += width) {
+            canvasContext.beginPath();
+            canvasContext.moveTo(i + width, CANVAS_HEIGHT);
+            canvasContext.lineTo(i + width, CANVAS_HEIGHT - (audioAnalyserBuffer[i] * 1.5));
+            canvasContext.stroke()
         }
         canvasContext.stroke();
     }
