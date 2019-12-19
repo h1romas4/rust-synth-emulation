@@ -192,9 +192,10 @@ let disconnect = function() {
     if(audioGain != null) audioGain.disconnect();
     if(audioNode != null) audioNode.disconnect();
     if(audioContext != null) audioContext.close();
-    audioAnalyser = null; // GC
-    audioNode = null; // GC
-    audioGain = null; // GC
+    // force GC
+    audioAnalyser = null;
+    audioNode = null;
+    audioGain = null;
     audioContext = null;
 }
 
@@ -203,16 +204,21 @@ let disconnect = function() {
  */
 let play = function() {
     canvas.removeEventListener('click', play, false);
-    // init audio
+    // recreate audio context for prevent memory leak.
     disconnect();
     audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: SAMPLING_RATE });
     audioNode = audioContext.createScriptProcessor(MAX_SAMPLING_BUFFER, 2, 2);
     feedOutCount = 0;
+    let stop = false;
     audioNode.onaudioprocess = function(ev) {
+        // flash last sampling
+        if(stop) {
+            disconnect();
+            next();
+        }
         let loop = vgmplay.play();
         ev.outputBuffer.getChannelData(0).set(samplingBufferL);
         ev.outputBuffer.getChannelData(1).set(samplingBufferR);
-        let stop = false;
         if(loop >= LOOP_MAX_COUNT) {
             if(feedOutCount == 0 && loop > LOOP_MAX_COUNT) {
                 // no loop track
@@ -228,10 +234,6 @@ let play = function() {
                     stop = true;
                 }
             }
-        }
-        if(stop) {
-            disconnect();
-            next();
         }
     };
     // connect gain
