@@ -7,6 +7,7 @@ const SAMPLING_RATE = 44100;
 const LOOP_MAX_COUNT = 2;
 const FEED_OUT_SECOND = 2;
 const FEED_OUT_REMAIN = (SAMPLING_RATE * FEED_OUT_SECOND) / MAX_SAMPLING_BUFFER;
+
 // canvas settings
 const CANVAS_WIDTH = 768;
 const CANVAS_HEIGHT = 576;
@@ -22,7 +23,7 @@ let samplingBufferR;
 let feedOutCount = 0;
 let playlist = [];
 let totalPlaylistCount;
-let vgm_gd3;
+let music_meta;
 
 /**
  * audio context
@@ -30,7 +31,6 @@ let vgm_gd3;
 let audioContext = null;
 let audioNode = null;
 let audioGain;
-
 let audioAnalyser;
 let audioAnalyserBuffer;
 let audioAnalyserBufferLength;
@@ -72,7 +72,7 @@ fetch('./vgm/ym2612.vgm')
         canvas.addEventListener('drop', onDrop, false);
         // for sample vgm
         totalPlaylistCount = 1;
-        createGd3meta({
+        music_meta = createGd3meta({
             track_name: "MEGADRIVE/GENESIS VGM(vgm/vgz) Player",
             track_name_j: "",
             game_name: "",
@@ -152,15 +152,15 @@ let next = function() {
     }
 }
 
-let createGd3meta = function(gd3) {
-    vgm_gd3 = gd3;
-    vgm_gd3.game_track_name = [vgm_gd3.game_name, vgm_gd3.track_name].filter(str => str != "").join(" | ");
-    vgm_gd3.game_track_name_j = [vgm_gd3.game_name_j, vgm_gd3.track_name_j].filter(str => str != "").join(" / ");
-    vgm_gd3.track_author_full = [vgm_gd3.track_author, vgm_gd3.track_author_j].filter(str => str != "").join(" - ");
+let createGd3meta = function(meta) {
+    meta.game_track_name = [meta.game_name, meta.track_name].filter(str => str != "").join(" | ");
+    meta.game_track_name_j = [meta.game_name_j, meta.track_name_j].filter(str => str != "").join(" / ");
+    meta.track_author_full = [meta.track_author, meta.track_author_j].filter(str => str != "").join(" - ");
     canvasContext.font = FONT_MAIN_STYLE;
-    vgm_gd3.game_track_name_left = (CANVAS_WIDTH - canvasContext.measureText(vgm_gd3.game_track_name).width) / 2;
-    vgm_gd3.game_track_name_j_left = (CANVAS_WIDTH - canvasContext.measureText(vgm_gd3.game_track_name_j).width) / 2;
-    vgm_gd3.track_author_full_left = (CANVAS_WIDTH - canvasContext.measureText(vgm_gd3.track_author_full).width) / 2;
+    meta.game_track_name_left = (CANVAS_WIDTH - canvasContext.measureText(meta.game_track_name).width) / 2;
+    meta.game_track_name_j_left = (CANVAS_WIDTH - canvasContext.measureText(meta.game_track_name_j).width) / 2;
+    meta.track_author_full_left = (CANVAS_WIDTH - canvasContext.measureText(meta.track_author_full).width) / 2;
+    return meta;
 };
 
 /**
@@ -170,16 +170,16 @@ let createGd3meta = function(gd3) {
 let init = function(bytes) {
     if(vgmplay != null) vgmplay.free();
     // create wasm instanse
-    vgmplay = new WasmVgmPlay(MAX_SAMPLING_BUFFER, bytes.byteLength);
+    vgmplay = new WasmVgmPlay(SAMPLING_RATE, MAX_SAMPLING_BUFFER, bytes.byteLength);
     // set vgmdata
-    vgmdata = new Uint8Array(memory.buffer, vgmplay.get_vgmdata_ref(), bytes.byteLength);
+    vgmdata = new Uint8Array(memory.buffer, vgmplay.get_seq_data_ref(), bytes.byteLength);
     vgmdata.set(new Uint8Array(bytes));
     // init player
-    if(!vgmplay.init(SAMPLING_RATE)) return false;
+    if(!vgmplay.init()) return false;
     samplingBufferL = new Float32Array(memory.buffer, vgmplay.get_sampling_l_ref(), MAX_SAMPLING_BUFFER);
     samplingBufferR = new Float32Array(memory.buffer, vgmplay.get_sampling_r_ref(), MAX_SAMPLING_BUFFER);
 
-    createGd3meta(JSON.parse(vgmplay.get_vgm_gd3()));
+    music_meta = createGd3meta(JSON.parse(vgmplay.get_seq_gd3()));
 
     return true;
 }
@@ -215,6 +215,7 @@ let play = function() {
         if(stop) {
             disconnect();
             next();
+            return;
         }
         let loop = vgmplay.play();
         ev.outputBuffer.getChannelData(0).set(samplingBufferL);
@@ -284,7 +285,7 @@ let draw = function() {
         fillTextCenterd("Track " + (totalPlaylistCount - playlist.length) + " / " + totalPlaylistCount, CANVAS_HEIGHT / 2 - 96);
     }
     canvasContext.font = FONT_MAIN_STYLE;
-    canvasContext.fillText(vgm_gd3.game_track_name, vgm_gd3.game_track_name_left, CANVAS_HEIGHT / 2 - 64);
-    canvasContext.fillText(vgm_gd3.game_track_name_j, vgm_gd3.game_track_name_j_left, CANVAS_HEIGHT / 2 - 32);
-    canvasContext.fillText(vgm_gd3.track_author_full, vgm_gd3.track_author_full_left, CANVAS_HEIGHT / 2);
+    canvasContext.fillText(music_meta.game_track_name, music_meta.game_track_name_left, CANVAS_HEIGHT / 2 - 64);
+    canvasContext.fillText(music_meta.game_track_name_j, music_meta.game_track_name_j_left, CANVAS_HEIGHT / 2 - 32);
+    canvasContext.fillText(music_meta.track_author_full, music_meta.track_author_full_left, CANVAS_HEIGHT / 2);
 }

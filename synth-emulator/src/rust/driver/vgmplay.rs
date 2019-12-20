@@ -42,17 +42,12 @@ impl VgmPlay {
     ///
     /// Create sound driver.
     ///
-    /// # Arguments
-    /// max_sampling_size
-    /// vgm_size
-    ///
-    #[allow(clippy::new_without_default)]
-    pub fn new(max_sampling_size: usize, vgm_file_size: usize) -> Self {
+    pub fn new(sample_rate: f32, max_sampling_size: usize, vgm_file_size: usize) -> Self {
         VgmPlay {
             ym3438: YM3438::default(),
             sn76489: SN76489::default(),
             pwm: PWM::new(),
-            sample_rate: 0_f32,
+            sample_rate,
             vgmpos: 0,
             datpos: 0,
             pcmpos: 0,
@@ -123,12 +118,7 @@ impl VgmPlay {
     ///
     /// extract vgz and initialize sound driver.
     ///
-    /// # Arguments
-    /// sample_rate - WebAudio sampling rate
-    ///
-    pub fn init(&mut self, sample_rate: f32) -> bool {
-        self.sample_rate = sample_rate;
-
+    pub fn init(&mut self) -> Result<(), &'static str> {
         self.extract();
 
         match parse_vgm_meta(&self.vgmdata) {
@@ -136,7 +126,7 @@ impl VgmPlay {
                 self.vgm_header = header;
                 self.vgm_gd3 = gd3;
             }
-            Err(_) => return false
+            Err(message) => return Err(message)
         };
 
         let mut clock_sn76489 : u32 = self.vgm_header.clock_sn76489;
@@ -148,7 +138,7 @@ impl VgmPlay {
 
         // TODO: MEGADRIVE default values
         if clock_sn76489 == 0 && clock_ym2612 == 0 && clock_pwm == 0 {
-            return false;
+            return Err("This VGM is not supported");
         }
         if clock_sn76489 == 0 {
             clock_sn76489 = 3_579_545;
@@ -161,12 +151,12 @@ impl VgmPlay {
         }
 
         // init sound chip
-        self.ym3438.reset(clock_ym2612, sample_rate as u32);
-        self.sn76489.init(clock_sn76489 as i32, sample_rate as i32);
+        self.ym3438.reset(clock_ym2612, self.sample_rate as u32);
+        self.sn76489.init(clock_sn76489 as i32, self.sample_rate as i32);
         self.sn76489.reset();
         self.pwm.device_start_pwm(0, clock_pwm as i32);
 
-        true
+        Ok(())
     }
 
     ///
@@ -397,7 +387,7 @@ mod tests {
         let mut buffer = Vec::new();
         let _ = file.read_to_end(&mut buffer).unwrap();
 
-        let mut vgmplay = VgmPlay::new(MAX_SAMPLING_SIZE, file.metadata().unwrap().len() as usize);
+        let mut vgmplay = VgmPlay::new(44100_f32, MAX_SAMPLING_SIZE, file.metadata().unwrap().len() as usize);
         // set vgmdata
         let vgmdata_ref = vgmplay.get_vgmdata_ref();
         let mut i: usize = 0;
@@ -407,7 +397,7 @@ mod tests {
         }
 
         // init & sample
-        vgmplay.init(44100_f32);
+        vgmplay.init().unwrap();
         // play
         while vgmplay.play(false) <= 0 {}
     }

@@ -93,15 +93,6 @@ impl VgmHeader {
     }
 }
 
-impl Gd3 {
-    pub fn get_json(&self) -> String {
-        match serde_json::to_string(&self) {
-            Ok(json) => json,
-            Err(_) => String::from("")
-        }
-    }
-}
-
 ///
 /// https://vgmrips.net/wiki/GD3_Specification
 ///
@@ -117,6 +108,15 @@ pub struct Gd3 {
     pub track_author_j: String,
     pub date: String,
     pub converted: String
+}
+
+impl Gd3 {
+    pub fn get_json(&self) -> String {
+        match serde_json::to_string(&self) {
+            Ok(json) => json,
+            Err(_) => String::from("")
+        }
+    }
 }
 
 ///
@@ -224,7 +224,7 @@ fn parse_vgm_header(i: &[u8]) -> IResult<&[u8], VgmHeader> {
         header = VgmHeader {
             rate,
             ..header
-        }
+        };
     }
     if version >= 110 {
         header = VgmHeader {
@@ -233,13 +233,13 @@ fn parse_vgm_header(i: &[u8]) -> IResult<&[u8], VgmHeader> {
             clock_ym2612,
             clock_ym2151,
             ..header
-        }
+        };
     }
     if version >= 150 {
         header = VgmHeader {
             vgm_data_offset,
             ..header
-        }
+        };
     }
     if version >= 151 {
         header = VgmHeader {
@@ -264,7 +264,7 @@ fn parse_vgm_header(i: &[u8]) -> IResult<&[u8], VgmHeader> {
             ay8910_flag,
             loop_modifier,
             ..header
-        }
+        };
     }
     if version >= 160 {
         header = VgmHeader {
@@ -272,7 +272,7 @@ fn parse_vgm_header(i: &[u8]) -> IResult<&[u8], VgmHeader> {
             reserved01,
             loop_base,
             ..header
-        }
+        };
     }
     if version >= 161 {
         header = VgmHeader {
@@ -294,13 +294,13 @@ fn parse_vgm_header(i: &[u8]) -> IResult<&[u8], VgmHeader> {
             clock_pokey,
             clock_qsound,
             ..header
-        }
+        };
     }
     if version >= 170 {
         header = VgmHeader {
             extra_hdr_ofs,
             ..header
-        }
+        };
     }
     if version >= 171 {
         header = VgmHeader {
@@ -325,7 +325,7 @@ fn parse_vgm_header(i: &[u8]) -> IResult<&[u8], VgmHeader> {
             reserved09,
             reserved10,
             ..header
-        }
+        };
     }
 
     Ok((i, header))

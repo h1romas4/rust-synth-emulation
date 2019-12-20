@@ -23,17 +23,17 @@ impl WasmVgmPlay {
     /// constructor
     ///
     #[wasm_bindgen(constructor)]
-    pub fn from(max_sampling_size: usize, vgm_size: usize) -> Self {
+    pub fn from(sample_rate: f32, max_sampling_size: usize, data_length: usize) -> Self {
         set_panic_hook();
         WasmVgmPlay {
-            vgmplay: VgmPlay::new(max_sampling_size, vgm_size)
+            vgmplay: VgmPlay::new(sample_rate, max_sampling_size, data_length)
         }
     }
 
     ///
     /// Return vgmdata buffer referance.
     ///
-    pub fn get_vgmdata_ref(&mut self) -> *mut u8 {
+    pub fn get_seq_data_ref(&mut self) -> *mut u8 {
         self.vgmplay.get_vgmdata_ref()
     }
 
@@ -52,16 +52,16 @@ impl WasmVgmPlay {
     }
 
     ///
-    /// get_vgm_header
+    /// get_header
     ///
-    pub fn get_vgm_header(&self) -> String {
+    pub fn get_seq_header(&self) -> String {
         self.vgmplay.get_vgm_header_json()
     }
 
     ///
-    /// get_vgm_gd3
+    /// get_gd3
     ///
-    pub fn get_vgm_gd3(&self) -> String {
+    pub fn get_seq_gd3(&self) -> String {
         self.vgmplay.get_vgm_gd3_json()
     }
 
@@ -71,8 +71,11 @@ impl WasmVgmPlay {
     /// # Arguments
     /// sample_rate - WebAudio sampling rate
     ///
-    pub fn init(&mut self, sample_rate: f32) -> bool {
-        self.vgmplay.init(sample_rate)
+    pub fn init(&mut self) -> bool {
+        match self.vgmplay.init() {
+            Ok(_) => true,
+            Err(_) => false
+        }
     }
 
     ///
