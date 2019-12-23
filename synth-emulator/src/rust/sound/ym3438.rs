@@ -40,6 +40,8 @@
  * version: 1.0.9
  */
 
+use crate::sound::{Device, DeviceName};
+
 #[derive(PartialEq, Copy, Clone)]
 pub enum YM3438Mode {
     YM2612 = 0x01,      /* Enables YM2612 emulation (MD1, MD2 VA2) */
@@ -532,7 +534,10 @@ pub struct YM3438 {
     // Bit64u writebuf_lasttime;
     writebuf_lasttime: usize,
     // opn2_writebuf writebuf[OPN_WRITEBUF_SIZE];
-    writebuf: [Opn2WriteBuf; OPN_WRITEBUF_SIZE]
+    writebuf: [Opn2WriteBuf; OPN_WRITEBUF_SIZE],
+
+    sample_rate: u32,
+    clock: u32
 }
 
 impl Default for YM3438 {
@@ -1399,6 +1404,9 @@ impl YM3438 {
     }
 
     pub fn reset(&mut self, clock: u32, sample_rate: u32) {
+        self.clock = clock;
+        self.sample_rate = sample_rate;
+
         let rateratio: i32 = self.rateratio;
         for i in 0..24 {
             self.eg_out[i] = 0x3ff;
@@ -1653,7 +1661,7 @@ impl YM3438 {
         self.writebuf_last = (self.writebuf_last + 1) % OPN_WRITEBUF_SIZE;
     }
 
-    pub fn opn2_generate_resampled(&mut self, buf: &mut [i32; 2]) {
+    fn opn2_generate_resampled(&mut self, buf: &mut [i32; 2]) {
         let mut buffer: [i16; 2] = [0; 2];
         let mut mute: u32;
 
@@ -1744,5 +1752,35 @@ impl YM3438 {
             f32_sample = -1_f32;
         }
         f32_sample
+    }
+}
+
+impl Device<u8> for YM3438 {
+    fn new() -> Self {
+        YM3438::default()
+    }
+
+    fn init(&mut self, sample_rate: u32, clock: u32) {
+        self.reset(clock, sample_rate);
+    }
+
+    fn get_device_name(&self) -> DeviceName {
+        if self.chip_type as u32 & YM3438Mode::YM2612 as u32 != 0 {
+            DeviceName::YM2612
+        } else {
+            DeviceName::YM3438
+        }
+    }
+
+    fn reset(&mut self) {
+        self.reset(self.clock, self.sample_rate);
+    }
+
+    fn write(&mut self, port: u32, data: u8) {
+        self.opn2_write_bufferd(port, data);
+    }
+
+    fn update(&mut self, buffer_l: &mut [f32], buffer_r: &mut [f32], numsamples: usize, buffer_pos: usize) {
+        self.opn2_generate_stream(buffer_l, buffer_r, numsamples, buffer_pos);
     }
 }

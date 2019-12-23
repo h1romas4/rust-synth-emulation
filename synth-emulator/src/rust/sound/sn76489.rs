@@ -33,6 +33,8 @@
 use std::f32;
 use std::i32;
 
+use crate::sound::{Device, DeviceName};
+
 // More testing is needed to find and confirm feedback patterns for
 // SN76489 variants and compatible chips.
 #[allow(dead_code)]
@@ -365,5 +367,32 @@ impl SN76489 {
             f32_sample = -1_f32;
         }
         f32_sample
+    }
+}
+
+impl Device<u8> for SN76489 {
+    fn new() -> Self {
+        SN76489::default()
+    }
+
+    fn init(&mut self, sample_rate: u32, clock: u32) {
+        self.init(clock as i32, sample_rate as i32);
+        self.reset();
+    }
+
+    fn get_device_name(&self) -> DeviceName {
+        DeviceName::SN76489
+    }
+
+    fn reset(&mut self) {
+        self.reset();
+    }
+
+    fn write(&mut self, _: u32, data: u8) {
+        self.write(data);
+    }
+
+    fn update(&mut self, buffer_l: &mut [f32], buffer_r: &mut [f32], numsamples: usize, buffer_pos: usize) {
+        self.update(buffer_l, buffer_r, numsamples, buffer_pos);
     }
 }

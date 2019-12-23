@@ -55,6 +55,8 @@
 // 	0x00, 0x00, 0x80, 0x40
 // ];
 
+use crate::sound::{Device, DeviceName};
+
 const CHIP_SAMPLING_MODE: u8 = 0x00;
 const CHIP_SAMPLE_RATE: i32 = 44100;
 const MAX_CHIPS: usize = 0x02;
@@ -123,12 +125,6 @@ struct PWMChip {
 
 #[allow(dead_code)]
 impl PWM {
-    pub fn new() -> Self {
-        PWM {
-            pwm_chip: [PWMChip::default(), PWMChip::default()]
-        }
-    }
-
     fn pwm_init(chip: &mut PWMChip) {
         chip.pwm_mode = 0;
         chip.pwm_out_r = 0;
@@ -226,7 +222,7 @@ impl PWM {
         f32_sample
     }
 
-    pub fn update(&self, chipid: usize, buffer_l: &mut [f32], buffer_r: &mut [f32], numsamples: usize, buffer_pos: usize) {
+    pub fn pwm_update_chip(&self, chipid: usize, buffer_l: &mut [f32], buffer_r: &mut [f32], numsamples: usize, buffer_pos: usize) {
         self.pwm_update(&self.pwm_chip[chipid], &mut buffer_l[buffer_pos..], &mut buffer_r[buffer_pos..], numsamples);
     }
 
@@ -315,5 +311,33 @@ impl PWM {
                 _ => {}
             }
         }
+    }
+}
+
+impl Device<u16> for PWM {
+    fn new() -> Self {
+        PWM {
+            pwm_chip: [PWMChip::default(), PWMChip::default()]
+        }
+    }
+
+    fn init(&mut self, _: u32, clock: u32) {
+        self.device_start_pwm(0, clock as i32);
+    }
+
+    fn get_device_name(&self) -> DeviceName {
+        DeviceName::PWM
+    }
+
+    fn reset(&mut self) {
+        self.device_reset_pwm(0);
+    }
+
+    fn write(&mut self, port: u32, data: u16) {
+        self.pwm_chn_w(0, port as u8, data);
+    }
+
+    fn update(&mut self, buffer_l: &mut [f32], buffer_r: &mut [f32], numsamples: usize, buffer_pos: usize) {
+        self.pwm_update_chip(0, buffer_l, buffer_r, numsamples, buffer_pos);
     }
 }

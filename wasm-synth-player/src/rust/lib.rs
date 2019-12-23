@@ -23,7 +23,7 @@ impl WasmVgmPlay {
     /// constructor
     ///
     #[wasm_bindgen(constructor)]
-    pub fn from(sample_rate: f32, max_sampling_size: usize, data_length: usize) -> Self {
+    pub fn from(sample_rate: u32, max_sampling_size: usize, data_length: usize) -> Self {
         set_panic_hook();
         WasmVgmPlay {
             vgmplay: VgmPlay::new(sample_rate, max_sampling_size, data_length)

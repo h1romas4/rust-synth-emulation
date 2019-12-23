@@ -9,18 +9,19 @@ use crate::driver::metadata::parse_vgm_meta;
 use crate::sound::sn76489::SN76489;
 use crate::sound::ym3438::YM3438;
 use crate::sound::pwm::PWM;
+use crate::sound::Device;
 
 pub struct VgmPlay {
     ym3438: YM3438,
     sn76489: SN76489,
     pwm: PWM,
-    sample_rate: f32,
+    sample_rate: u32,
     vgmpos: usize,
     datpos: usize,
     pcmpos: usize,
     pcmoffset: usize,
-    pcm_stream_sample_count: f32,
-    pcm_stream_sampling_pos: f32,
+    pcm_stream_sample_count: u32,
+    pcm_stream_sampling_pos: u32,
     pcm_stream_length: usize,
     pcm_stream_pos_init: usize,
     pcm_stream_pos: usize,
@@ -44,18 +45,18 @@ impl VgmPlay {
     ///
     /// Create sound driver.
     ///
-    pub fn new(sample_rate: f32, max_sampling_size: usize, vgm_file_size: usize) -> Self {
+    pub fn new(sample_rate: u32, max_sampling_size: usize, vgm_file_size: usize) -> Self {
         VgmPlay {
-            ym3438: YM3438::default(),
-            sn76489: SN76489::default(),
+            ym3438: YM3438::new(),
+            sn76489: SN76489::new(),
             pwm: PWM::new(),
             sample_rate,
             vgmpos: 0,
             datpos: 0,
             pcmpos: 0,
             pcmoffset: 0,
-            pcm_stream_sample_count: 0_f32,
-            pcm_stream_sampling_pos: 0_f32,
+            pcm_stream_sample_count: 0,
+            pcm_stream_sampling_pos: 0,
             pcm_stream_length: 0,
             pcm_stream_pos_init: 0,
             pcm_stream_pos: 0,
@@ -153,10 +154,9 @@ impl VgmPlay {
         }
 
         // init sound chip
-        self.ym3438.reset(clock_ym2612, self.sample_rate as u32);
-        self.sn76489.init(clock_sn76489 as i32, self.sample_rate as i32);
-        self.sn76489.reset();
-        self.pwm.device_start_pwm(0, clock_pwm as i32);
+        Device::init(&mut self.ym3438, self.sample_rate, clock_ym2612);
+        Device::init(&mut self.sn76489, self.sample_rate, clock_sn76489);
+        Device::init(&mut self.pwm, self.sample_rate, clock_pwm);
 
         Ok(())
     }
@@ -182,20 +182,20 @@ impl VgmPlay {
                 update_frame_size = self.max_sampling_size - buffer_pos;
             }
             if self.pcm_stream_pos_init == self.pcm_stream_pos && self.pcm_stream_length > 0 {
-                self.pcm_stream_sampling_pos = 0_f32;
+                self.pcm_stream_sampling_pos = 0;
             }
             for _ in 0..update_frame_size {
                 if self.pcm_stream_length > 0 && (self.pcm_stream_sampling_pos % self.pcm_stream_sample_count) as usize == 0 {
                     self.update_dac();
                 }
-                self.sn76489.update(&mut self.sampling_l, &mut self.sampling_r, 1, buffer_pos);
-                self.pwm.update(0, &mut self.sampling_l, &mut self.sampling_r, 1, buffer_pos);
-                self.ym3438.opn2_generate_stream(&mut self.sampling_l, &mut self.sampling_r, 1, buffer_pos);
+                Device::update(&mut self.sn76489, &mut self.sampling_l, &mut self.sampling_r, 1, buffer_pos);
+                Device::update(&mut self.pwm, &mut self.sampling_l, &mut self.sampling_r, 1, buffer_pos);
+                Device::update(&mut self.ym3438, &mut self.sampling_l, &mut self.sampling_r, 1, buffer_pos);
                 if self.remain_frame_size > 0 {
                     self.remain_frame_size -= 1;
                 }
                 buffer_pos += 1;
-                self.pcm_stream_sampling_pos += 1_f32;
+                self.pcm_stream_sampling_pos += 1;
             }
             buffer_pos < self.max_sampling_size && !self.vgmend
         } {}
@@ -245,14 +245,14 @@ impl VgmPlay {
         match command {
             0x50 => {
                 dat = self.get_vgm_u8();
-                self.sn76489.write(dat);
+                Device::write(&mut self.sn76489, 0, dat);
             }
             0x52 | 0x53 => {
                 reg = self.get_vgm_u8();
                 dat = self.get_vgm_u8();
                 let port = u32::from(command & 0x01) << 1;
-                self.ym3438.opn2_write_bufferd(port, reg);
-                self.ym3438.opn2_write_bufferd(port + 1, dat);
+                Device::write(&mut self.ym3438, port, reg);
+                Device::write(&mut self.ym3438, port + 1, dat);
             }
             0x61 => {
                 wait = self.get_vgm_u16();
@@ -284,8 +284,8 @@ impl VgmPlay {
             }
             0x80..=0x8f => {
                 wait = (command & 0x0f).into();
-                self.ym3438.opn2_write_bufferd(0, 0x2a);
-                self.ym3438.opn2_write_bufferd(1, self.vgmdata[self.datpos + self.pcmpos + self.pcmoffset]);
+                Device::write(&mut self.ym3438, 0, 0x2a);
+                Device::write(&mut self.ym3438, 1, self.vgmdata[self.datpos + self.pcmpos + self.pcmoffset]);
                 self.pcmoffset += 1;
             }
             0x90 => {
@@ -305,7 +305,7 @@ impl VgmPlay {
                 // 0x92 ss ff ff ff ff
                 // 0x92 00 40 1f 00 00 (8KHz)
                 self.get_vgm_u8();
-                self.pcm_stream_sample_count = self.sample_rate / self.get_vgm_u32() as f32;
+                self.pcm_stream_sample_count = self.sample_rate / self.get_vgm_u32();
             }
             0x93 => {
                 // Start Stream
@@ -338,7 +338,7 @@ impl VgmPlay {
                 let raw2 = self.get_vgm_u8();
                 let channel = (raw1 & 0xf0) >> 4 as u8;
                 let data: u16 = (raw1 as u16 & 0x0f) << 8 | raw2 as u16;
-                self.pwm.pwm_chn_w(0, channel, data);
+                Device::write(&mut self.pwm, channel as u32, data);
             }
             0xe0 => {
                 self.pcmpos = self.get_vgm_u32() as usize;
@@ -355,8 +355,8 @@ impl VgmPlay {
     }
 
     fn update_dac(&mut self) {
-        self.ym3438.opn2_write_bufferd(0, 0x2a);
-        self.ym3438.opn2_write_bufferd(1, self.vgmdata[self.datpos + self.pcm_stream_pos + self.pcm_stream_offset]);
+        Device::write(&mut self.ym3438, 0, 0x2a);
+        Device::write(&mut self.ym3438, 1, self.vgmdata[self.datpos + self.pcm_stream_pos + self.pcm_stream_offset]);
         self.pcm_stream_length -= 1;
         self.pcm_stream_pos += 1;
     }
@@ -389,7 +389,7 @@ mod tests {
         let mut buffer = Vec::new();
         let _ = file.read_to_end(&mut buffer).unwrap();
 
-        let mut vgmplay = VgmPlay::new(44100_f32, MAX_SAMPLING_SIZE, file.metadata().unwrap().len() as usize);
+        let mut vgmplay = VgmPlay::new(44100, MAX_SAMPLING_SIZE, file.metadata().unwrap().len() as usize);
         // set vgmdata
         let vgmdata_ref = vgmplay.get_vgmdata_ref();
         let mut i: usize = 0;
