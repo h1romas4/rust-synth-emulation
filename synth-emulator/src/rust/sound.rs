@@ -1,6 +1,10 @@
-pub mod ym3438;
-pub mod sn76489;
-pub mod pwm;
+mod ym3438;
+mod sn76489;
+mod pwm;
+
+pub use crate::sound::ym3438::YM3438 as YM3438;
+pub use crate::sound::sn76489::SN76489 as SN76489;
+pub use crate::sound::pwm::PWM as PWM;
 
 ///
 /// Device Name

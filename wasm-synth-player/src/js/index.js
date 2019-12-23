@@ -1,5 +1,5 @@
-import { WasmVgmPlay } from "wasm-vgm-player";
-import { memory } from "wasm-vgm-player/wasm_vgm_player_bg";
+import { WgmPlay } from "wgm-player";
+import { memory } from "wgm-player/wgm_player_bg";
 
 // vgm setting
 const MAX_SAMPLING_BUFFER = 4096;
@@ -16,8 +16,8 @@ const COLOR_MD_RED = '#e60012';
 const FONT_MAIN_STYLE = '16px sans-serif';
 
 // vgm member
-let vgmplay = null;
-let vgmdata;
+let wgmplay = null;
+let seqdata;
 let samplingBufferL;
 let samplingBufferR;
 let feedOutCount = 0;
@@ -168,18 +168,18 @@ let createGd3meta = function(meta) {
  * @param ArrayBuffer bytes
  */
 let init = function(bytes) {
-    if(vgmplay != null) vgmplay.free();
+    if(wgmplay != null) wgmplay.free();
     // create wasm instanse
-    vgmplay = new WasmVgmPlay(SAMPLING_RATE, MAX_SAMPLING_BUFFER, bytes.byteLength);
+    wgmplay = new WgmPlay(SAMPLING_RATE, MAX_SAMPLING_BUFFER, bytes.byteLength);
     // set vgmdata
-    vgmdata = new Uint8Array(memory.buffer, vgmplay.get_seq_data_ref(), bytes.byteLength);
-    vgmdata.set(new Uint8Array(bytes));
+    seqdata = new Uint8Array(memory.buffer, wgmplay.get_seq_data_ref(), bytes.byteLength);
+    seqdata.set(new Uint8Array(bytes));
     // init player
-    if(!vgmplay.init()) return false;
-    samplingBufferL = new Float32Array(memory.buffer, vgmplay.get_sampling_l_ref(), MAX_SAMPLING_BUFFER);
-    samplingBufferR = new Float32Array(memory.buffer, vgmplay.get_sampling_r_ref(), MAX_SAMPLING_BUFFER);
+    if(!wgmplay.init()) return false;
+    samplingBufferL = new Float32Array(memory.buffer, wgmplay.get_sampling_l_ref(), MAX_SAMPLING_BUFFER);
+    samplingBufferR = new Float32Array(memory.buffer, wgmplay.get_sampling_r_ref(), MAX_SAMPLING_BUFFER);
 
-    music_meta = createGd3meta(JSON.parse(vgmplay.get_seq_gd3()));
+    music_meta = createGd3meta(JSON.parse(wgmplay.get_seq_gd3()));
 
     return true;
 }
@@ -217,7 +217,7 @@ let play = function() {
             next();
             return;
         }
-        let loop = vgmplay.play();
+        let loop = wgmplay.play();
         ev.outputBuffer.getChannelData(0).set(samplingBufferL);
         ev.outputBuffer.getChannelData(1).set(samplingBufferR);
         if(loop >= LOOP_MAX_COUNT) {

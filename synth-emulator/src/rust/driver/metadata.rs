@@ -369,7 +369,7 @@ fn parse_vgm_gd3(i: &[u8]) -> IResult<&[u8], Gd3> {
 ///
 /// parse_vgm_meta
 ///
-pub fn parse_vgm_meta(vgmdata: &[u8]) -> Result<(VgmHeader, Gd3), &'static str> {
+pub(crate) fn parse_vgm_meta(vgmdata: &[u8]) -> Result<(VgmHeader, Gd3), &'static str> {
     let header = match parse_vgm_header(&vgmdata[..255]) {
         Ok((_, header)) => header,
         Err(_) => {
@@ -384,9 +384,10 @@ pub fn parse_vgm_meta(vgmdata: &[u8]) -> Result<(VgmHeader, Gd3), &'static str> 
     Ok((header, gd3))
 }
 
+///
 /// Jsonlize
 ///
-pub trait Jsonlize : serde::Serialize {
+pub(crate) trait Jsonlize : serde::Serialize {
     fn get_json(&self) -> String {
         match serde_json::to_string(&self) {
             Ok(json) => json,

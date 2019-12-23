@@ -6,9 +6,9 @@ use crate::driver::metadata::Gd3;
 use crate::driver::metadata::Jsonlize;
 use crate::driver::metadata::parse_vgm_meta;
 
-use crate::sound::sn76489::SN76489;
-use crate::sound::ym3438::YM3438;
-use crate::sound::pwm::PWM;
+use crate::sound::SN76489;
+use crate::sound::YM3438;
+use crate::sound::PWM;
 use crate::sound::Device;
 
 pub struct VgmPlay {
@@ -77,9 +77,9 @@ impl VgmPlay {
     }
 
     ///
-    /// Return vgmdata buffer referance.
+    /// Return vgmfile buffer referance.
     ///
-    pub fn get_vgmdata_ref(&mut self) -> *mut u8 {
+    pub fn get_vgmfile_ref(&mut self) -> *mut u8 {
         self.vgmfile.as_mut_ptr()
     }
 
@@ -391,7 +391,7 @@ mod tests {
 
         let mut vgmplay = VgmPlay::new(44100, MAX_SAMPLING_SIZE, file.metadata().unwrap().len() as usize);
         // set vgmdata
-        let vgmdata_ref = vgmplay.get_vgmdata_ref();
+        let vgmdata_ref = vgmplay.get_vgmfile_ref();
         let mut i: usize = 0;
         for buf in buffer.iter() {
             unsafe { *vgmdata_ref.add(i) = *buf; }

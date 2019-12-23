@@ -1,5 +1,5 @@
 use wasm_bindgen::prelude::*;
-use synth_emulator::driver::vgmplay::VgmPlay;
+use synth_emulator::driver::VgmPlay;
 
 #[wasm_bindgen]
 extern "C" {
@@ -13,19 +13,19 @@ macro_rules! console_log {
 }
 
 #[wasm_bindgen]
-pub struct WasmVgmPlay {
+pub struct WgmPlay {
     vgmplay: VgmPlay
 }
 
 #[wasm_bindgen]
-impl WasmVgmPlay {
+impl WgmPlay {
     ///
     /// constructor
     ///
     #[wasm_bindgen(constructor)]
     pub fn from(sample_rate: u32, max_sampling_size: usize, data_length: usize) -> Self {
         set_panic_hook();
-        WasmVgmPlay {
+        WgmPlay {
             vgmplay: VgmPlay::new(sample_rate, max_sampling_size, data_length)
         }
     }
@@ -34,7 +34,7 @@ impl WasmVgmPlay {
     /// Return vgmdata buffer referance.
     ///
     pub fn get_seq_data_ref(&mut self) -> *mut u8 {
-        self.vgmplay.get_vgmdata_ref()
+        self.vgmplay.get_vgmfile_ref()
     }
 
     ///
