@@ -84,15 +84,6 @@ pub struct VgmHeader {
     pub reserved10: u32
 }
 
-impl VgmHeader {
-    pub fn get_json(&self) -> String {
-        match serde_json::to_string(&self) {
-            Ok(json) => json,
-            Err(_) => String::from("")
-        }
-    }
-}
-
 ///
 /// https://vgmrips.net/wiki/GD3_Specification
 ///
@@ -108,15 +99,6 @@ pub struct Gd3 {
     pub track_author_j: String,
     pub date: String,
     pub converted: String
-}
-
-impl Gd3 {
-    pub fn get_json(&self) -> String {
-        match serde_json::to_string(&self) {
-            Ok(json) => json,
-            Err(_) => String::from("")
-        }
-    }
 }
 
 ///
@@ -402,9 +384,24 @@ pub fn parse_vgm_meta(vgmdata: &[u8]) -> Result<(VgmHeader, Gd3), &'static str> 
     Ok((header, gd3))
 }
 
+/// Jsonlize
+///
+pub trait Jsonlize : serde::Serialize {
+    fn get_json(&self) -> String {
+        match serde_json::to_string(&self) {
+            Ok(json) => json,
+            Err(_) => String::from("")
+        }
+    }
+}
+
+impl Jsonlize for VgmHeader { }
+impl Jsonlize for Gd3 { }
+
 #[cfg(test)]
 mod tests {
     use super::parse_vgm_meta;
+    use super::Jsonlize;
     use std::fs::File;
     use std::io::Read;
 

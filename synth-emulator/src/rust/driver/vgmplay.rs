@@ -1,12 +1,14 @@
 use std::io::prelude::*;
 use flate2::read::GzDecoder;
 
-use crate::driver::metadata::parse_vgm_meta;
 use crate::driver::metadata::VgmHeader;
 use crate::driver::metadata::Gd3;
-use crate::sn76489::SN76489;
-use crate::ym3438::YM3438;
-use crate::pwm::PWM;
+use crate::driver::metadata::Jsonlize;
+use crate::driver::metadata::parse_vgm_meta;
+
+use crate::sound::sn76489::SN76489;
+use crate::sound::ym3438::YM3438;
+use crate::sound::pwm::PWM;
 
 pub struct VgmPlay {
     ym3438: YM3438,
