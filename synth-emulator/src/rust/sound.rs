@@ -27,3 +27,22 @@ pub trait Device<T> {
     fn write(&mut self, port: u32, data: T);
     fn update(&mut self, buffer_l: &mut [f32], buffer_r: &mut [f32], numsamples: usize, buffer_pos: usize);
 }
+
+///
+/// convert_sample_i2f
+///
+fn convert_sample_i2f(i32_sample: i32) -> f32 {
+    let mut f32_sample: f32;
+    if i32_sample < 0 {
+        f32_sample = i32_sample as f32 / 32768_f32;
+    } else {
+        f32_sample = i32_sample as f32 / 32767_f32;
+    }
+    if f32_sample > 1_f32 {
+        f32_sample = 1_f32;
+    }
+    if f32_sample < -1_f32 {
+        f32_sample = -1_f32;
+    }
+    f32_sample
+}

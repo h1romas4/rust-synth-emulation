@@ -6,10 +6,7 @@ use crate::driver::metadata::Gd3;
 use crate::driver::metadata::Jsonlize;
 use crate::driver::metadata::parse_vgm_meta;
 
-use crate::sound::SN76489;
-use crate::sound::YM3438;
-use crate::sound::PWM;
-use crate::sound::Device;
+use crate::sound::{SN76489, YM3438, PWM, Device};
 
 pub struct VgmPlay {
     ym3438: YM3438,
@@ -185,9 +182,14 @@ impl VgmPlay {
                 self.pcm_stream_sampling_pos = 0;
             }
             for _ in 0..update_frame_size {
+                // straming pcm update
                 if self.pcm_stream_length > 0 && (self.pcm_stream_sampling_pos % self.pcm_stream_sample_count) as usize == 0 {
                     self.update_dac();
                 }
+                // clear buffer
+                self.sampling_l[buffer_pos] = 0_f32;
+                self.sampling_r[buffer_pos] = 0_f32;
+                // mix each device 1 sampling
                 Device::update(&mut self.sn76489, &mut self.sampling_l, &mut self.sampling_r, 1, buffer_pos);
                 Device::update(&mut self.pwm, &mut self.sampling_l, &mut self.sampling_r, 1, buffer_pos);
                 Device::update(&mut self.ym3438, &mut self.sampling_l, &mut self.sampling_r, 1, buffer_pos);

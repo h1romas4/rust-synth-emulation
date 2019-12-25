@@ -55,7 +55,7 @@
 // 	0x00, 0x00, 0x80, 0x40
 // ];
 
-use crate::sound::{Device, DeviceName};
+use crate::sound::{Device, DeviceName, convert_sample_i2f};
 
 const CHIP_SAMPLING_MODE: u8 = 0x00;
 const CHIP_SAMPLE_RATE: i32 = 44100;
@@ -201,25 +201,9 @@ impl PWM {
         tmp_out_r = self.pwm_update_scale(&chip, pwm_out_r);
 
         for i in 0..length {
-            buffer_l[i] += self.convert_sample_i2f(tmp_out_l);
-            buffer_r[i] += self.convert_sample_i2f(tmp_out_r);
+            buffer_l[i] += convert_sample_i2f(tmp_out_l);
+            buffer_r[i] += convert_sample_i2f(tmp_out_r);
         }
-    }
-
-    fn convert_sample_i2f(&self, i32_sample: i32) -> f32 {
-        let mut f32_sample: f32;
-        if i32_sample < 0 {
-            f32_sample = i32_sample as f32 / 32768_f32;
-        } else {
-            f32_sample = i32_sample as f32 / 32767_f32;
-        }
-        if f32_sample > 1_f32 {
-            f32_sample = 1_f32;
-        }
-        if f32_sample < -1_f32 {
-            f32_sample = -1_f32;
-        }
-        f32_sample
     }
 
     pub fn pwm_update_chip(&self, chipid: usize, buffer_l: &mut [f32], buffer_r: &mut [f32], numsamples: usize, buffer_pos: usize) {

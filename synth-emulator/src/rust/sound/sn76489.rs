@@ -33,7 +33,7 @@
 use std::f32;
 use std::i32;
 
-use crate::sound::{Device, DeviceName};
+use crate::sound::{Device, DeviceName, convert_sample_i2f};
 
 // More testing is needed to find and confirm feedback patterns for
 // SN76489 variants and compatible chips.
@@ -247,8 +247,8 @@ impl SN76489 {
                 buffer_li +=  self.channels[i];
                 buffer_ri +=  self.channels[i];
             }
-            buffer_l[j + buffer_pos] = self.convert_sample_i2f(buffer_li / 2);
-            buffer_r[j + buffer_pos] = self.convert_sample_i2f(buffer_ri / 2);
+            buffer_l[j + buffer_pos] += convert_sample_i2f(buffer_li / 2);
+            buffer_r[j + buffer_pos] += convert_sample_i2f(buffer_ri / 2);
 
             // Increment clock by 1 sample length
             self.clock += self.d_clock;
@@ -351,22 +351,6 @@ impl SN76489 {
 
     fn mute(&mut self, mask: MuteValues) {
         self.mute = mask as i32;
-    }
-
-    fn convert_sample_i2f(&self, i32_sample: i32) -> f32 {
-        let mut f32_sample: f32;
-        if i32_sample < 0 {
-            f32_sample = i32_sample as f32 / 32768_f32;
-        } else {
-            f32_sample = i32_sample as f32 / 32767_f32;
-        }
-        if f32_sample > 1_f32 {
-            f32_sample = 1_f32;
-        }
-        if f32_sample < -1_f32 {
-            f32_sample = -1_f32;
-        }
-        f32_sample
     }
 }
 
