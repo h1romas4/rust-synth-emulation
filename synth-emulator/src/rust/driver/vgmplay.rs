@@ -119,6 +119,7 @@ impl VgmPlay {
     /// extract vgz and initialize sound driver.
     ///
     pub fn init(&mut self) -> Result<(), &'static str> {
+        // try vgz extract
         self.extract();
 
         match parse_vgm_meta(&self.vgmdata) {
@@ -129,14 +130,14 @@ impl VgmPlay {
             Err(message) => return Err(message)
         };
 
-        let mut clock_sn76489 : u32 = self.vgm_header.clock_sn76489;
-        let mut clock_ym2612 : u32 = self.vgm_header.clock_ym2612;
-        let mut clock_pwm: u32 = self.vgm_header.clock_pwm;
         self.vgm_loop = self.vgm_header.offset_loop as usize;
         self.vgm_loop_offset = (0x1c + self.vgm_header.offset_loop) as usize;
         self.vgmpos = (0x34 + self.vgm_header.vgm_data_offset) as usize;
 
         // TODO: MEGADRIVE default values
+        let mut clock_sn76489 : u32 = self.vgm_header.clock_sn76489;
+        let mut clock_ym2612 : u32 = self.vgm_header.clock_ym2612;
+        let mut clock_pwm: u32 = self.vgm_header.clock_pwm;
         if clock_sn76489 == 0 && clock_ym2612 == 0 && clock_pwm == 0 {
             return Err("This VGM is not supported");
         }
@@ -291,6 +292,7 @@ impl VgmPlay {
                 self.pcmoffset += 1;
             }
             0x90 => {
+                // TODO: respect stream no
                 // Setup Stream Control
                 // 0x90 ss tt pp cc
                 // 0x90 00 02 00 2a
