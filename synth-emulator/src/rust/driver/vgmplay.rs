@@ -167,6 +167,12 @@ impl VgmPlay {
         let mut update_frame_size: usize;
         let mut buffer_pos: usize;
 
+        // clear buffer
+        for i in 0..self.max_sampling_size {
+            self.sampling_l[i] = 0_f32;
+            self.sampling_r[i] = 0_f32;
+        }
+
         buffer_pos = 0;
         while {
             if self.remain_frame_size > 0 {
@@ -187,9 +193,6 @@ impl VgmPlay {
                 if self.pcm_stream_length > 0 && (self.pcm_stream_sampling_pos % self.pcm_stream_sample_count) as usize == 0 {
                     self.update_dac();
                 }
-                // clear buffer
-                self.sampling_l[buffer_pos] = 0_f32;
-                self.sampling_r[buffer_pos] = 0_f32;
                 // mix each device 1 sampling
                 Device::update(&mut self.sn76489, &mut self.sampling_l, &mut self.sampling_r, 1, buffer_pos);
                 Device::update(&mut self.pwm, &mut self.sampling_l, &mut self.sampling_r, 1, buffer_pos);
