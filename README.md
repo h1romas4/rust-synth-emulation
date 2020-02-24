@@ -17,7 +17,7 @@ rustup target add wasm32-unknown-unknown
 curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
 ```
 
-Compile
+**Compile**
 
 ```
 git clone git@github.com:h1romas4/rust-synth-emulation.git
@@ -27,13 +27,13 @@ npm install
 npm run start
 ```
 
-## Play
+**Play**
 
 ```
 http://localhost:9000/
 ```
 
-## Create VGM file
+**Create VGM file**
 
 * [mml2vgm](https://github.com/kuma4649/mml2vgm) by [kumatan](https://github.com/kuma4649) san
 * [mucomMD2vgm](https://github.com/kuma4649/mucomMD2vgm) by [kumatan](https://github.com/kuma4649) san
