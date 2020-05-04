@@ -4,6 +4,8 @@ YM2612/SN76489 VGM player by Rust
 
 ## WebAssembly demo site
 
+[![](https://raw.githubusercontent.com/h1romas4/rust-synth-emulation/master/docs/images/ogp.png)](https://h1romas4.github.io/rust-synth-emulation/index.html)
+
 [ym2612.vgm](https://h1romas4.github.io/rust-synth-emulation/index.html)
 
 ## Build
