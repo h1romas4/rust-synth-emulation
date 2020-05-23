@@ -23,6 +23,7 @@ curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
 
 ```
 git clone git@github.com:h1romas4/rust-synth-emulation.git
+cd rust-synth-emulation
 cd wasm-synth-player
 wasm-pack build
 npm install
