@@ -1914,6 +1914,4 @@ impl<'a> Device<'a, u8> for YM3438 {
     fn update(&mut self, buffer_l: &mut [f32], buffer_r: &mut [f32], numsamples: usize, buffer_pos: usize) {
         self.opn2_generate_stream(buffer_l, buffer_r, numsamples, buffer_pos);
     }
-
-    fn set_rom(&mut self, _: &'a[u8]) {}
 }

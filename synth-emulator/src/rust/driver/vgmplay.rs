@@ -1,4 +1,4 @@
-use std::{io::prelude::*, slice};
+use std::io::prelude::*;
 use flate2::read::GzDecoder;
 
 use crate::driver::metadata::VgmHeader;
@@ -6,13 +6,12 @@ use crate::driver::metadata::Gd3;
 use crate::driver::metadata::Jsonlize;
 use crate::driver::metadata::parse_vgm_meta;
 
-use crate::sound::{SN76489, YM3438, PWM, SEGAPCM, Device};
+use crate::sound::{SN76489, YM3438, PWM, Device};
 
-pub struct VgmPlay<'a> {
+pub struct VgmPlay {
     ym3438: YM3438,
     sn76489: SN76489,
     pwm: PWM,
-    segapcm: SEGAPCM<'a>,
     sample_rate: u32,
     vgmpos: usize,
     datpos: usize,
@@ -39,7 +38,7 @@ pub struct VgmPlay<'a> {
 }
 
 #[allow(dead_code)]
-impl VgmPlay<'_> {
+impl VgmPlay {
     ///
     /// Create sound driver.
     ///
@@ -48,7 +47,6 @@ impl VgmPlay<'_> {
             ym3438: YM3438::new(),
             sn76489: SN76489::new(),
             pwm: PWM::new(),
-            segapcm: SEGAPCM::new(),
             sample_rate,
             vgmpos: 0,
             datpos: 0,
@@ -136,11 +134,10 @@ impl VgmPlay<'_> {
         self.vgm_loop_offset = (0x1c + self.vgm_header.offset_loop) as usize;
         self.vgmpos = (0x34 + self.vgm_header.vgm_data_offset) as usize;
 
-        // TODO: MEGADRIVE and more default values
+        // TODO: MEGADRIVE default values
         let mut clock_sn76489 : u32 = self.vgm_header.clock_sn76489;
         let mut clock_ym2612 : u32 = self.vgm_header.clock_ym2612;
         let mut clock_pwm: u32 = self.vgm_header.clock_pwm;
-        let mut clock_segapcm: u32 = self.vgm_header.clock_segapcm;
         if clock_sn76489 == 0 && clock_ym2612 == 0 && clock_pwm == 0 {
             return Err("This VGM is not supported");
         }
@@ -153,15 +150,11 @@ impl VgmPlay<'_> {
         if clock_pwm == 0 {
             clock_pwm = 23_011_360;
         }
-        if clock_segapcm == 0 {
-            clock_segapcm = 4_000_000;
-        }
 
         // init sound chip
         Device::init(&mut self.ym3438, self.sample_rate, clock_ym2612, None);
         Device::init(&mut self.sn76489, self.sample_rate, clock_sn76489, None);
         Device::init(&mut self.pwm, self.sample_rate, clock_pwm, None);
-        Device::init(&mut self.segapcm, self.sample_rate, clock_segapcm, None);
 
         Ok(())
     }
@@ -200,12 +193,10 @@ impl VgmPlay<'_> {
                 if self.pcm_stream_length > 0 && (self.pcm_stream_sampling_pos % self.pcm_stream_sample_count) as usize == 0 {
                     self.update_dac();
                 }
-                // TODO:
                 // mix each device 1 sampling
                 Device::update(&mut self.sn76489, &mut self.sampling_l, &mut self.sampling_r, 1, buffer_pos);
                 Device::update(&mut self.pwm, &mut self.sampling_l, &mut self.sampling_r, 1, buffer_pos);
                 Device::update(&mut self.ym3438, &mut self.sampling_l, &mut self.sampling_r, 1, buffer_pos);
-                Device::update(&mut self.segapcm, &mut self.sampling_l, &mut self.sampling_r, 1, buffer_pos);
                 if self.remain_frame_size > 0 {
                     self.remain_frame_size -= 1;
                 }
@@ -252,25 +243,22 @@ impl VgmPlay<'_> {
 
     fn parse_vgm(&mut self, repeat: bool) -> u16 {
         let command: u8;
+        let reg: u8;
+        let dat: u8;
         let mut wait: u16 = 0;
 
         command = self.get_vgm_u8();
         match command {
             0x50 => {
-                let dat = self.get_vgm_u8();
+                dat = self.get_vgm_u8();
                 Device::write(&mut self.sn76489, 0, dat);
             }
             0x52 | 0x53 => {
-                let reg = self.get_vgm_u8();
-                let dat = self.get_vgm_u8();
+                reg = self.get_vgm_u8();
+                dat = self.get_vgm_u8();
                 let port = u32::from(command & 0x01) << 1;
                 Device::write(&mut self.ym3438, port, reg);
                 Device::write(&mut self.ym3438, port + 1, dat);
-            }
-            0x54 => {
-                // TODO: YM2151 write
-                self.get_vgm_u8(); // reg
-                self.get_vgm_u8(); // dat
             }
             0x61 => {
                 wait = self.get_vgm_u16();
@@ -293,17 +281,9 @@ impl VgmPlay<'_> {
             }
             0x67 => {
                 self.get_vgm_u8(); // 0x66
-                let dtype = self.get_vgm_u8(); // 0x00 data type
+                self.get_vgm_u8(); // 0x00 data type
                 self.datpos = self.vgmpos + 4;
                 self.vgmpos += self.get_vgm_u32() as usize;
-                // sagapcm
-                if dtype == 0x80 {
-                    // TODO: unsafe
-                    // println!("find! {:x}, {}, {:x}", self.datpos, self.vgmpos - self.datpos, self.vgmdata[self.datpos + 4]);
-                    let start = self.vgmdata[self.datpos..].as_ptr();
-                    let slice = unsafe { slice::from_raw_parts(start, self.vgmpos - self.datpos) };
-                    Device::set_rom(&mut self.segapcm, slice);
-                }
             }
             0x70..=0x7f => {
                 wait = ((command & 0x0f) + 1).into();
@@ -367,11 +347,6 @@ impl VgmPlay<'_> {
                 let data: u16 = (raw1 as u16 & 0x0f) << 8 | raw2 as u16;
                 Device::write(&mut self.pwm, channel as u32, data);
             }
-            0xc0 => {
-                let offset = self.get_vgm_u16();
-                let dat = self.get_vgm_u8();
-                Device::write(&mut self.segapcm, u32::from(offset), dat);
-            }
             0xe0 => {
                 self.pcmpos = self.get_vgm_u32() as usize;
                 self.pcmoffset = 0;
@@ -400,7 +375,7 @@ impl VgmPlay<'_> {
 #[cfg(test)]
 mod tests {
     use super::VgmPlay;
-    use std::{fs::File};
+    use std::fs::File;
     use std::io::Read;
 
     const MAX_SAMPLING_SIZE: usize = 4096;
@@ -413,11 +388,6 @@ mod tests {
     #[test]
     fn ym2612_1() {
         play("../docs/vgm/ym2612.vgm")
-    }
-
-    #[test]
-    fn segapcm_1() {
-        play("../docs/vgm/segapcm.vgm")
     }
 
     fn play(filepath: &str) {

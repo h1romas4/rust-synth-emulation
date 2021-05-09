@@ -14,8 +14,7 @@
  use std::convert::TryInto;
  use crate::sound::{Device, DeviceName, convert_sample_i32f32};
 
- #[allow(clippy::upper_case_acronyms)]
- pub struct SEGAPCM<'a> {
+pub struct SEGAPCM<'a> {
     clock: u32,
     ram: [u8; 0x800],
     rom: Option<&'a[u8]>,
@@ -47,9 +46,6 @@ impl<'a> SEGAPCM<'a> {
     }
 
     fn update(&mut self,  buffer_l: &mut [f32], buffer_r: &mut [f32], numsamples: usize, buffer_pos: usize) {
-        // TODO:
-        if self.rom == None { return; }
-
         // reg      function
         // ------------------------------------------------
         // 0x00     ?
@@ -76,7 +72,7 @@ impl<'a> SEGAPCM<'a> {
 
             /* only process active channels */
             if regs[0x86] & 1 == 0 {
-                let offset: usize = (u32::from(regs[0x86] & self.bankmask) << self.bankshift).try_into().unwrap();
+                let offset: usize = ((regs[0x86] & self.bankmask) << self.bankshift).into();
                 let mut addr: u32 = u32::from(regs[0x85]) << 16 | u32::from(regs[0x84]) << 8 | u32::from(self.low[ch]);
                 let loops: u32 = u32::from(regs[0x05]) << 16 | u32::from(regs[0x04]) << 8;
                 let end: u8 = regs[6] + 1;
@@ -93,7 +89,7 @@ impl<'a> SEGAPCM<'a> {
                         }
                     }
                     /* fetch the sample */
-                    v = (self.rom.unwrap()[offset + (addr >> 8) as usize] as u8 - 0x80).try_into().unwrap();
+                    v = (self.rom.unwrap()[offset + (addr >> 8) as usize] - 0x80).try_into().unwrap();
                     /* apply panning and advance */
                     buffer_l[buffer_pos + i] += convert_sample_i32f32((v * (regs[2] & 0x7f) as i8).into());
                     buffer_r[buffer_pos + i] += convert_sample_i32f32((v * (regs[3] & 0x7f) as i8).into());
@@ -135,9 +131,5 @@ impl<'a> Device<'a, u8> for SEGAPCM<'a> {
 
     fn update(&mut self, buffer_l: &mut [f32], buffer_r: &mut [f32], numsamples: usize, buffer_pos: usize) {
         self.update(buffer_l, buffer_r, numsamples, buffer_pos);
-    }
-
-    fn set_rom(&mut self, rom: &'a[u8]) {
-        self.rom = Some(rom);
     }
 }
