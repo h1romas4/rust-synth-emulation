@@ -379,4 +379,6 @@ impl<'a> Device<'a, u8> for SN76489 {
     fn update(&mut self, buffer_l: &mut [f32], buffer_r: &mut [f32], numsamples: usize, buffer_pos: usize) {
         self.update(buffer_l, buffer_r, numsamples, buffer_pos);
     }
+
+    fn set_rom(&mut self, _: &'a[u8]) {}
 }

@@ -22,7 +22,7 @@ pub struct VgmHeader {
     pub clock_ym2612: u32,
     pub clock_ym2151: u32,
     pub vgm_data_offset: u32,
-    pub sega_pcm_block: u32,
+    pub clock_segapcm: u32,
     pub spcm_interface: u32,
     pub clock_rf5c68: u32,
     pub clock_ym2203: u32,
@@ -223,7 +223,7 @@ fn parse_vgm_header(i: &[u8]) -> IResult<&[u8], VgmHeader> {
     if version >= 151 {
         header = VgmHeader {
             sn76489_f,
-            sega_pcm_block,
+            clock_segapcm: sega_pcm_block,
             spcm_interface,
             clock_rf5c68,
             clock_ym2203,

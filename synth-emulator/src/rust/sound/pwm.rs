@@ -62,6 +62,7 @@ const CHIP_SAMPLE_RATE: i32 = 44100;
 const MAX_CHIPS: usize = 0x02;
 const PWM_LOUDNESS: u8 = 0;
 
+#[allow(clippy::upper_case_acronyms)]
 pub struct PWM {
     pwm_chip: [PWMChip; MAX_CHIPS]
 }
@@ -321,4 +322,6 @@ impl<'a> Device<'a, u16> for PWM {
     fn update(&mut self, buffer_l: &mut [f32], buffer_r: &mut [f32], numsamples: usize, buffer_pos: usize) {
         self.pwm_update_chip(0, buffer_l, buffer_r, numsamples, buffer_pos);
     }
+
+    fn set_rom(&mut self, _: &'a[u8]) {}
 }
