@@ -65,7 +65,7 @@ impl VgmPlay {
             vgmend: false,
             vgmfile: vec![0; vgm_file_size],
             vgmdata: Vec::new(),
-            max_sampling_size,
+            max_sampling_size: max_sampling_size,
             sampling_l: vec![0_f32; max_sampling_size],
             sampling_r: vec![0_f32; max_sampling_size],
             vgm_header: VgmHeader::default(),
@@ -152,9 +152,9 @@ impl VgmPlay {
         }
 
         // init sound chip
-        Device::init(&mut self.ym3438, self.sample_rate, clock_ym2612, None);
-        Device::init(&mut self.sn76489, self.sample_rate, clock_sn76489, None);
-        Device::init(&mut self.pwm, self.sample_rate, clock_pwm, None);
+        Device::init(&mut self.ym3438, self.sample_rate, clock_ym2612);
+        Device::init(&mut self.sn76489, self.sample_rate, clock_sn76489);
+        Device::init(&mut self.pwm, self.sample_rate, clock_pwm);
 
         Ok(())
     }
@@ -219,7 +219,7 @@ impl VgmPlay {
 
     fn extract(&mut self) {
         let mut d = GzDecoder::new(self.vgmfile.as_slice());
-        if d.read_to_end(&mut self.vgmdata).is_err() {
+        if let Err(_) = d.read_to_end(&mut self.vgmdata) {
             self.vgmdata = self.vgmfile.clone();
         }
     }
@@ -343,7 +343,7 @@ impl VgmPlay {
                 // PWM, write value ddd to register a (d is MSB, dd is LSB)
                 let raw1 = self.get_vgm_u8();
                 let raw2 = self.get_vgm_u8();
-                let channel = (raw1 & 0xf0) >> 4_u8;
+                let channel = (raw1 & 0xf0) >> 4 as u8;
                 let data: u16 = (raw1 as u16 & 0x0f) << 8 | raw2 as u16;
                 Device::write(&mut self.pwm, channel as u32, data);
             }
@@ -399,17 +399,15 @@ mod tests {
         let mut vgmplay = VgmPlay::new(44100, MAX_SAMPLING_SIZE, file.metadata().unwrap().len() as usize);
         // set vgmdata
         let vgmdata_ref = vgmplay.get_vgmfile_ref();
-        for (i, buf) in buffer.iter().enumerate() {
+        let mut i: usize = 0;
+        for buf in buffer.iter() {
             unsafe { *vgmdata_ref.add(i) = *buf; }
+            i += 1;
         }
 
         // init & sample
         vgmplay.init().unwrap();
         // play
-        loop {
-            if vgmplay.play(false) == 0 {
-                break;
-            }
-        }
+        while vgmplay.play(false) <= 0 {}
     }
 }

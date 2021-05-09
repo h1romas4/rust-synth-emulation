@@ -109,7 +109,10 @@ fn parse_vgm_header(i: &[u8]) -> IResult<&[u8], VgmHeader> {
     let (i, eof) = le_u32(i)?;
     let (i, version) = take(4usize)(i)?;
     let version = version.iter().rev().map(|n| format!("{:02X}", n)).collect::<String>();
-    let version = version.parse().unwrap_or(0);
+    let version = match version.parse() {
+        Ok(version) => version,
+        Err(_) => 0
+    };
     let (i, clock_sn76489) = le_u32(i)?;
     let (i, clock_ym2413) = le_u32(i)?;
     let (i, offset_gd3) = le_u32(i)?;
