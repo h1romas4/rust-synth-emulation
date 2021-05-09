@@ -40,7 +40,8 @@
  * version: 1.0.9
  */
 
-use crate::sound::{Device, DeviceName, convert_sample_i2f};
+ use array_macro::*;
+ use crate::sound::{Device, DeviceName, convert_sample_i32f32};
 
 #[derive(PartialEq, Copy, Clone)]
 pub enum YM3438Mode {
@@ -238,6 +239,11 @@ const FM_ALGORITHM: [[[u32; 8]; 6]; 4]  = [
         [ 1, 1, 1, 1, 1, 1, 1, 1 ]  /* Out           */
     ]
 ];
+
+const RSM_FRAC: i32 = 10;
+
+const OPN_WRITEBUF_SIZE: usize = 2048;
+const OPN_WRITEBUF_DELAY: u32 = 15;
 
 #[allow(dead_code)]
 pub struct YM3438 {
@@ -537,21 +543,161 @@ pub struct YM3438 {
     writebuf: [Opn2WriteBuf; OPN_WRITEBUF_SIZE],
 
     sample_rate: u32,
-    clock: u32
+    clock: u32,
 }
 
 impl Default for YM3438 {
     fn default() -> YM3438 {
-        unsafe { std::mem::zeroed() }
+        YM3438 {
+            chip_type: YM3438Mode::YM2612,
+            cycles: 0,
+            channel: 0,
+            mol: 0,
+            mor: 0,
+            write_data: 0,
+            write_a: 0,
+            write_d: 0,
+            write_a_en: 0,
+            write_d_en: 0,
+            write_busy: 0,
+            write_busy_cnt: 0,
+            write_fm_address: 0,
+            write_fm_data: 0,
+            write_fm_mode_a: 0,
+            address: 0,
+            data: 0,
+            pin_test_in: 0,
+            pin_irq: 0,
+            busy: 0,
+            lfo_en: 0,
+            lfo_freq: 0,
+            lfo_pm: 0,
+            lfo_am: 0,
+            lfo_cnt: 0,
+            lfo_inc: 0,
+            lfo_quotient: 0,
+            pg_fnum: 0,
+            pg_block: 0,
+            pg_kcode: 0,
+            pg_inc: [0; 24],
+            pg_phase: [0; 24],
+            pg_reset: [0; 24],
+            pg_read: 0,
+            eg_cycle: 0,
+            eg_cycle_stop: 0,
+            eg_shift: 0,
+            eg_shift_lock: 0,
+            eg_timer_low_lock: 0,
+            eg_timer: 0,
+            eg_timer_inc: 0,
+            eg_quotient: 0,
+            eg_custom_timer: 0,
+            eg_rate: 0,
+            eg_ksv: 0,
+            eg_inc: 0,
+            eg_ratemax: 0,
+            eg_sl: [0; 2],
+            eg_lfo_am: 0,
+            eg_tl: [0; 2],
+            eg_state: [EgNum::Attack; 24],
+            eg_level: [0; 24],
+            eg_out: [0; 24],
+            eg_kon: [0; 24],
+            eg_kon_csm: [0; 24],
+            eg_kon_latch: [0; 24],
+            eg_csm_mode: [0; 24],
+            eg_ssg_enable: [0; 24],
+            eg_ssg_pgrst_latch: [0; 24],
+            eg_ssg_repeat_latch: [0; 24],
+            eg_ssg_hold_up_latch: [0; 24],
+            eg_ssg_dir: [0; 24],
+            eg_ssg_inv: [0; 24],
+            eg_read: [0; 2],
+            eg_read_inc: 0,
+            fm_op1: [[0; 2]; 6],
+            fm_op2: [0; 6],
+            fm_out: [0; 24],
+            fm_mod: [0; 24],
+            ch_acc: [0; 6],
+            ch_out: [0; 6],
+            ch_lock: 0,
+            ch_lock_l: 0,
+            ch_lock_r: 0,
+            ch_read: 0,
+            timer_a_cnt: 0,
+            timer_a_reg: 0,
+            timer_a_load_lock: 0,
+            timer_a_load: 0,
+            timer_a_enable: 0,
+            timer_a_reset: 0,
+            timer_a_load_latch: 0,
+            timer_a_overflow_flag: 0,
+            timer_a_overflow: 0,
+            timer_b_cnt: 0,
+            timer_b_subcnt: 0,
+            timer_b_reg: 0,
+            timer_b_load_lock: 0,
+            timer_b_load: 0,
+            timer_b_enable: 0,
+            timer_b_reset: 0,
+            timer_b_load_latch: 0,
+            timer_b_overflow_flag: 0,
+            timer_b_overflow: 0,
+            mode_test_21: [0; 8],
+            mode_test_2c: [0; 8],
+            mode_ch3: 0,
+            mode_kon_channel: 0,
+            mode_kon_operator: [0; 4],
+            mode_kon: [0; 24],
+            mode_csm: 0,
+            mode_kon_csm: 0,
+            dacen: 0,
+            dacdata: 0,
+            ks: [0; 24],
+            ar: [0; 24],
+            sr: [0; 24],
+            dt: [0; 24],
+            multi: [0; 24],
+            sl: [0; 24],
+            rr: [0; 24],
+            dr: [0; 24],
+            am: [0; 24],
+            tl: [0; 24],
+            ssg_eg: [0; 24],
+            fnum: [0; 6],
+            block: [0; 6],
+            kcode: [0; 6],
+            fnum_3ch: [0; 6],
+            block_3ch: [0; 6],
+            kcode_3ch: [0; 6],
+            reg_a4: 0,
+            reg_ac: 0,
+            connect: [0; 6],
+            fb: [0; 6],
+            pan_l: [0; 6],
+            pan_r: [0; 6],
+            ams: [0; 6],
+            pms: [0; 6],
+            status: 0,
+            status_time: 0,
+            mute: [0; 7],
+            rateratio: 0,
+            samplecnt: 0,
+            oldsamples: [0; 2],
+            samples: [0; 2],
+            writebuf_samplecnt: 0,
+            writebuf_cur: 0,
+            writebuf_last: 0,
+            writebuf_lasttime: 0,
+            writebuf: array![Opn2WriteBuf { time: 0, port: 0, data: 0 } ; OPN_WRITEBUF_SIZE],
+            sample_rate: 0,
+            clock: 0,
+        }
     }
 }
 
-const RSM_FRAC: i32 = 10;
-
-const OPN_WRITEBUF_SIZE: usize = 2048;
-const OPN_WRITEBUF_DELAY: u32 = 15;
-
 #[derive(Default)]
+#[derive(Clone)]
 struct Opn2WriteBuf {
     // Bit64u time;
     time: u64,
@@ -1164,7 +1310,7 @@ impl YM3438 {
         mod0 = mod1 + mod2;
         if op == 0 {
             /* Feedback */
-            mod0 = mod0 >> (10 - self.fb[channel]);
+            mod0 >>= 10 - self.fb[channel];
             if self.fb[channel] == 0 {
                 mod0 = 0;
             }
@@ -1299,7 +1445,7 @@ impl YM3438 {
         }
         output = ((u32::from((EXPROM[((level & 0xff) ^ 0xff) as usize]) | 0x400) << 2) >> (level >> 8)) as i16;
         if phase & 0x200 != 0 {
-            output = ((!output) ^ ((u16::from(self.mode_test_21[4]) << 13)) as i16) + 1;
+            output = ((!output) ^ (u16::from(self.mode_test_21[4]) << 13) as i16) + 1;
         } else {
             output ^= (u16::from(self.mode_test_21[4]) << 13) as i16;
         }
@@ -1537,7 +1683,8 @@ impl YM3438 {
                     self.pg_block = self.block_3ch[2];
                     self.pg_kcode = self.kcode_3ch[2];
                 }
-                19 | _ => {
+                /* 19 | _ */
+                _ => {
                     /* OP4 */
                     self.pg_fnum = self.fnum[(self.channel + 1) % 6];
                     self.pg_block = self.block[(self.channel + 1) % 6];
@@ -1639,8 +1786,8 @@ impl YM3438 {
             self.opn2_write(u32::from(self.writebuf[self.writebuf_last].port & 0x03), self.writebuf[self.writebuf_last].data);
 
             self.writebuf_cur = (self.writebuf_last + 1) % OPN_WRITEBUF_SIZE;
-            skip = u64::from(self.writebuf[self.writebuf_last].time) - self.writebuf_samplecnt;
-            self.writebuf_samplecnt = u64::from(self.writebuf[self.writebuf_last].time);
+            skip = self.writebuf[self.writebuf_last].time - self.writebuf_samplecnt;
+            self.writebuf_samplecnt = self.writebuf[self.writebuf_last].time;
             while skip > 0 {
                 self.opn2_clock(&mut buffer);
                 skip -= 1;
@@ -1706,7 +1853,7 @@ impl YM3438 {
                     self.samples[1] += i32::from(buffer[1]);
                 }
 
-                while u64::from(self.writebuf[self.writebuf_cur].time) <= self.writebuf_samplecnt {
+                while self.writebuf[self.writebuf_cur].time <= self.writebuf_samplecnt {
                     if (self.writebuf[self.writebuf_cur].port & 0x04) == 0 {
                         break;
                     }
@@ -1733,18 +1880,18 @@ impl YM3438 {
 
         for i in 0..numsamples {
             self.opn2_generate_resampled(&mut sample);
-            buffer_l[buffer_pos + i as usize] += convert_sample_i2f(sample[0]);
-            buffer_r[buffer_pos + i as usize] += convert_sample_i2f(sample[1]);
+            buffer_l[buffer_pos + i as usize] += convert_sample_i32f32(sample[0]);
+            buffer_r[buffer_pos + i as usize] += convert_sample_i32f32(sample[1]);
         }
     }
 }
 
-impl Device<u8> for YM3438 {
+impl<'a> Device<'a, u8> for YM3438 {
     fn new() -> Self {
         YM3438::default()
     }
 
-    fn init(&mut self, sample_rate: u32, clock: u32) {
+    fn init(&mut self, sample_rate: u32, clock: u32, _: Option<&'a [u8]>) {
         self.reset(clock, sample_rate);
     }
 

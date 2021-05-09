@@ -55,7 +55,7 @@
 // 	0x00, 0x00, 0x80, 0x40
 // ];
 
-use crate::sound::{Device, DeviceName, convert_sample_i2f};
+use crate::sound::{Device, DeviceName, convert_sample_i32f32};
 
 const CHIP_SAMPLING_MODE: u8 = 0x00;
 const CHIP_SAMPLE_RATE: i32 = 44100;
@@ -201,8 +201,8 @@ impl PWM {
         tmp_out_r = self.pwm_update_scale(&chip, pwm_out_r);
 
         for i in 0..length {
-            buffer_l[i] += convert_sample_i2f(tmp_out_l);
-            buffer_r[i] += convert_sample_i2f(tmp_out_r);
+            buffer_l[i] += convert_sample_i32f32(tmp_out_l);
+            buffer_r[i] += convert_sample_i32f32(tmp_out_r);
         }
     }
 
@@ -224,11 +224,10 @@ impl PWM {
 
         PWM::pwm_init(&mut chip);
 
-        return rate;
+        rate
     }
 
     pub fn device_stop_pwm(&self, _chipid: usize) {
-        return;
     }
 
     pub fn device_reset_pwm(&mut self, chipid: usize) {
@@ -274,13 +273,11 @@ impl PWM {
                 0x03 => {
                     // r ch
                     chip.pwm_out_r = data;
-                    if chip.pwm_mode == 0 {
-                        if chip.pwm_out_l == chip.pwm_out_r {
-                            // fixes these terrible pops when
-                            // starting/stopping/pausing the song
-                            chip.pwm_offset = data as i32;
-                            chip.pwm_mode = 0x01;
-                        }
+                    if chip.pwm_mode == 0 && chip.pwm_out_l == chip.pwm_out_r {
+                        // fixes these terrible pops when
+                        // starting/stopping/pausing the song
+                        chip.pwm_offset = data as i32;
+                        chip.pwm_mode = 0x01;
                     }
                 }
                 0x04 => {
@@ -298,14 +295,14 @@ impl PWM {
     }
 }
 
-impl Device<u16> for PWM {
+impl<'a> Device<'a, u16> for PWM {
     fn new() -> Self {
         PWM {
             pwm_chip: [PWMChip::default(), PWMChip::default()]
         }
     }
 
-    fn init(&mut self, _: u32, clock: u32) {
+    fn init(&mut self, _: u32, clock: u32, _: Option<&'a [u8]>) {
         self.device_start_pwm(0, clock as i32);
     }
 
