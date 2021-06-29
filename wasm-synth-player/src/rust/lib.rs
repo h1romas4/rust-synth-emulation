@@ -72,10 +72,7 @@ impl WgmPlay {
     /// sample_rate - WebAudio sampling rate
     ///
     pub fn init(&mut self) -> bool {
-        match self.vgmplay.init() {
-            Ok(_) => true,
-            Err(_) => false
-        }
+        self.vgmplay.init().is_ok()
     }
 
     ///

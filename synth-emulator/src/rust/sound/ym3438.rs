@@ -1310,7 +1310,7 @@ impl YM3438 {
         mod0 = mod1 + mod2;
         if op == 0 {
             /* Feedback */
-            mod0 = mod0 >> (10 - self.fb[channel]);
+            mod0 >>= 10 - self.fb[channel];
             if self.fb[channel] == 0 {
                 mod0 = 0;
             }
@@ -1445,7 +1445,7 @@ impl YM3438 {
         }
         output = ((u32::from((EXPROM[((level & 0xff) ^ 0xff) as usize]) | 0x400) << 2) >> (level >> 8)) as i16;
         if phase & 0x200 != 0 {
-            output = ((!output) ^ ((u16::from(self.mode_test_21[4]) << 13)) as i16) + 1;
+            output = ((!output) ^ (u16::from(self.mode_test_21[4]) << 13) as i16) + 1;
         } else {
             output ^= (u16::from(self.mode_test_21[4]) << 13) as i16;
         }
@@ -1683,7 +1683,8 @@ impl YM3438 {
                     self.pg_block = self.block_3ch[2];
                     self.pg_kcode = self.kcode_3ch[2];
                 }
-                19 | _ => {
+                // 19 =>
+                _ => {
                     /* OP4 */
                     self.pg_fnum = self.fnum[(self.channel + 1) % 6];
                     self.pg_block = self.block[(self.channel + 1) % 6];
@@ -1785,8 +1786,8 @@ impl YM3438 {
             self.opn2_write(u32::from(self.writebuf[self.writebuf_last].port & 0x03), self.writebuf[self.writebuf_last].data);
 
             self.writebuf_cur = (self.writebuf_last + 1) % OPN_WRITEBUF_SIZE;
-            skip = u64::from(self.writebuf[self.writebuf_last].time) - self.writebuf_samplecnt;
-            self.writebuf_samplecnt = u64::from(self.writebuf[self.writebuf_last].time);
+            skip = self.writebuf[self.writebuf_last].time - self.writebuf_samplecnt;
+            self.writebuf_samplecnt = self.writebuf[self.writebuf_last].time;
             while skip > 0 {
                 self.opn2_clock(&mut buffer);
                 skip -= 1;
@@ -1852,7 +1853,7 @@ impl YM3438 {
                     self.samples[1] += i32::from(buffer[1]);
                 }
 
-                while u64::from(self.writebuf[self.writebuf_cur].time) <= self.writebuf_samplecnt {
+                while self.writebuf[self.writebuf_cur].time <= self.writebuf_samplecnt {
                     if (self.writebuf[self.writebuf_cur].port & 0x04) == 0 {
                         break;
                     }

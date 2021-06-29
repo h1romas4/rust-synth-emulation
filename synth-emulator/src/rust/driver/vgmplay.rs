@@ -65,7 +65,7 @@ impl VgmPlay {
             vgmend: false,
             vgmfile: vec![0; vgm_file_size],
             vgmdata: Vec::new(),
-            max_sampling_size: max_sampling_size,
+            max_sampling_size,
             sampling_l: vec![0_f32; max_sampling_size],
             sampling_r: vec![0_f32; max_sampling_size],
             vgm_header: VgmHeader::default(),
@@ -219,7 +219,7 @@ impl VgmPlay {
 
     fn extract(&mut self) {
         let mut d = GzDecoder::new(self.vgmfile.as_slice());
-        if let Err(_) = d.read_to_end(&mut self.vgmdata) {
+        if d.read_to_end(&mut self.vgmdata).is_err() {
             self.vgmdata = self.vgmfile.clone();
         }
     }
@@ -343,7 +343,7 @@ impl VgmPlay {
                 // PWM, write value ddd to register a (d is MSB, dd is LSB)
                 let raw1 = self.get_vgm_u8();
                 let raw2 = self.get_vgm_u8();
-                let channel = (raw1 & 0xf0) >> 4 as u8;
+                let channel = (raw1 & 0xf0) >> 4_u8;
                 let data: u16 = (raw1 as u16 & 0x0f) << 8 | raw2 as u16;
                 Device::write(&mut self.pwm, channel as u32, data);
             }
@@ -399,15 +399,14 @@ mod tests {
         let mut vgmplay = VgmPlay::new(44100, MAX_SAMPLING_SIZE, file.metadata().unwrap().len() as usize);
         // set vgmdata
         let vgmdata_ref = vgmplay.get_vgmfile_ref();
-        let mut i: usize = 0;
-        for buf in buffer.iter() {
+        for (i, buf) in buffer.iter().enumerate() {
             unsafe { *vgmdata_ref.add(i) = *buf; }
-            i += 1;
         }
 
         // init & sample
         vgmplay.init().unwrap();
         // play
+        #[allow(clippy::absurd_extreme_comparisons)]
         while vgmplay.play(false) <= 0 {}
     }
 }

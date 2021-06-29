@@ -224,11 +224,10 @@ impl PWM {
 
         PWM::pwm_init(&mut chip);
 
-        return rate;
+        rate
     }
 
     pub fn device_stop_pwm(&self, _chipid: usize) {
-        return;
     }
 
     pub fn device_reset_pwm(&mut self, chipid: usize) {
@@ -274,13 +273,11 @@ impl PWM {
                 0x03 => {
                     // r ch
                     chip.pwm_out_r = data;
-                    if chip.pwm_mode == 0 {
-                        if chip.pwm_out_l == chip.pwm_out_r {
-                            // fixes these terrible pops when
-                            // starting/stopping/pausing the song
-                            chip.pwm_offset = data as i32;
-                            chip.pwm_mode = 0x01;
-                        }
+                    if chip.pwm_mode == 0 && chip.pwm_out_l == chip.pwm_out_r {
+                        // fixes these terrible pops when
+                        // starting/stopping/pausing the song
+                        chip.pwm_offset = data as i32;
+                        chip.pwm_mode = 0x01;
                     }
                 }
                 0x04 => {

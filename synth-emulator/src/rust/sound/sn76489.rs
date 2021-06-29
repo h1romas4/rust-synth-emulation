@@ -234,7 +234,7 @@ impl SN76489 {
                     * ((self.noise_shift_register & 0x01) * 2 - 1);
                 // due to the way the white noise works here, it seems twice as loud as it should be
                 if (self.registers[6] & 0x4) != 0 {
-                    self.channels[3] = self.channels[3] >> 1;
+                    self.channels[3] >>= 1;
                 }
             } else {
                 self.channels[3] = 0;
