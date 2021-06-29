@@ -1,5 +1,5 @@
 import { WgmPlay } from "chiptune";
-import { memory } from "chiptune/chiptune_bg";
+import { memory } from "chiptune/chiptune_bg.wasm";
 
 // vgm setting
 const MAX_SAMPLING_BUFFER = 4096;

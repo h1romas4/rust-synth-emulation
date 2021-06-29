@@ -54,21 +54,21 @@
 /******/ 	var wasmImportObjects = {
 /******/ 		"./pkg/chiptune_bg.wasm": function() {
 /******/ 			return {
-/******/ 				"./chiptune.js": {
+/******/ 				"./chiptune_bg.js": {
 /******/ 					"__wbg_new_59cb74e423758ede": function() {
-/******/ 						return installedModules["./pkg/chiptune.js"].exports["__wbg_new_59cb74e423758ede"]();
+/******/ 						return installedModules["./pkg/chiptune_bg.js"].exports["__wbg_new_59cb74e423758ede"]();
 /******/ 					},
 /******/ 					"__wbg_stack_558ba5917b466edd": function(p0i32,p1i32) {
-/******/ 						return installedModules["./pkg/chiptune.js"].exports["__wbg_stack_558ba5917b466edd"](p0i32,p1i32);
+/******/ 						return installedModules["./pkg/chiptune_bg.js"].exports["__wbg_stack_558ba5917b466edd"](p0i32,p1i32);
 /******/ 					},
 /******/ 					"__wbg_error_4bb6c2a97407129a": function(p0i32,p1i32) {
-/******/ 						return installedModules["./pkg/chiptune.js"].exports["__wbg_error_4bb6c2a97407129a"](p0i32,p1i32);
+/******/ 						return installedModules["./pkg/chiptune_bg.js"].exports["__wbg_error_4bb6c2a97407129a"](p0i32,p1i32);
 /******/ 					},
 /******/ 					"__wbindgen_object_drop_ref": function(p0i32) {
-/******/ 						return installedModules["./pkg/chiptune.js"].exports["__wbindgen_object_drop_ref"](p0i32);
+/******/ 						return installedModules["./pkg/chiptune_bg.js"].exports["__wbindgen_object_drop_ref"](p0i32);
 /******/ 					},
 /******/ 					"__wbindgen_throw": function(p0i32,p1i32) {
-/******/ 						return installedModules["./pkg/chiptune.js"].exports["__wbindgen_throw"](p0i32,p1i32);
+/******/ 						return installedModules["./pkg/chiptune_bg.js"].exports["__wbindgen_throw"](p0i32,p1i32);
 /******/ 					}
 /******/ 				}
 /******/ 			};
@@ -161,7 +161,7 @@
 /******/
 /******/ 		// Fetch + compile chunk loading for webassembly
 /******/
-/******/ 		var wasmModules = {"1":["./pkg/chiptune_bg.wasm"]}[chunkId] || [];
+/******/ 		var wasmModules = {"0":["./pkg/chiptune_bg.wasm"]}[chunkId] || [];
 /******/
 /******/ 		wasmModules.forEach(function(wasmModuleId) {
 /******/ 			var installedWasmModuleData = installedWasmModules[wasmModuleId];
@@ -171,7 +171,7 @@
 /******/ 				promises.push(installedWasmModuleData);
 /******/ 			else {
 /******/ 				var importObject = wasmImportObjects[wasmModuleId]();
-/******/ 				var req = fetch(__webpack_require__.p + "" + {"./pkg/chiptune_bg.wasm":"7b3732da5824eb991bdf"}[wasmModuleId] + ".module.wasm");
+/******/ 				var req = fetch(__webpack_require__.p + "" + {"./pkg/chiptune_bg.wasm":"17ac8dee767ae56b7da8"}[wasmModuleId] + ".module.wasm");
 /******/ 				var promise;
 /******/ 				if(importObject instanceof Promise && typeof WebAssembly.compileStreaming === 'function') {
 /******/ 					promise = Promise.all([WebAssembly.compileStreaming(req), importObject]).then(function(items) {
@@ -272,7 +272,7 @@
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
-eval("// A dependency graph that contains any wasm must all be imported\n// asynchronously. This `bootstrap.js` file does the single async import, so\n// that no one else needs to worry about it again.\nPromise.all(/*! import() */[__webpack_require__.e(0), __webpack_require__.e(1)]).then(__webpack_require__.bind(null, /*! ./index.js */ \"./src/js/index.js\"))[\"catch\"](function (e) {\n  return console.error(\"Error importing `index.js`:\", e);\n});\n\n//# sourceURL=webpack:///./src/js/bootstrap.js?");
+eval("// A dependency graph that contains any wasm must all be imported\n// asynchronously. This `bootstrap.js` file does the single async import, so\n// that no one else needs to worry about it again.\n__webpack_require__.e(/*! import() */ 0).then(__webpack_require__.bind(null, /*! ./index.js */ \"./src/js/index.js\"))[\"catch\"](function (e) {\n  return console.error(\"Error importing `index.js`:\", e);\n});\n\n//# sourceURL=webpack:///./src/js/bootstrap.js?");
 
 /***/ })
 
