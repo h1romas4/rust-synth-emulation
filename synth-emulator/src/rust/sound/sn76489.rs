@@ -33,7 +33,7 @@
 use std::f32;
 use std::i32;
 
-use crate::sound::{Device, DeviceName, convert_sample_i2f};
+use crate::sound::{SoundDevice, SoundDeviceName, convert_sample_i2f};
 
 // More testing is needed to find and confirm feedback patterns for
 // SN76489 variants and compatible chips.
@@ -354,7 +354,7 @@ impl SN76489 {
     }
 }
 
-impl Device<u8> for SN76489 {
+impl SoundDevice<u8> for SN76489 {
     fn new() -> Self {
         SN76489::default()
     }
@@ -364,8 +364,8 @@ impl Device<u8> for SN76489 {
         self.reset();
     }
 
-    fn get_device_name(&self) -> DeviceName {
-        DeviceName::SN76489
+    fn get_name(&self) -> SoundDeviceName {
+        SoundDeviceName::SN76489
     }
 
     fn reset(&mut self) {

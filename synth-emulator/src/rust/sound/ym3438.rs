@@ -40,7 +40,7 @@
  * version: 1.0.9
  */
 
-use crate::sound::{Device, DeviceName, convert_sample_i2f};
+use crate::sound::{SoundDevice, SoundDeviceName, convert_sample_i2f};
 
 use array_macro::*;
 
@@ -1886,7 +1886,7 @@ impl YM3438 {
     }
 }
 
-impl Device<u8> for YM3438 {
+impl SoundDevice<u8> for YM3438 {
     fn new() -> Self {
         YM3438::default()
     }
@@ -1895,11 +1895,11 @@ impl Device<u8> for YM3438 {
         self.reset(clock, sample_rate);
     }
 
-    fn get_device_name(&self) -> DeviceName {
+    fn get_name(&self) -> SoundDeviceName {
         if self.chip_type as u32 & YM3438Mode::YM2612 as u32 != 0 {
-            DeviceName::YM2612
+            SoundDeviceName::YM2612
         } else {
-            DeviceName::YM3438
+            SoundDeviceName::YM3438
         }
     }
 

@@ -1,20 +1,25 @@
-use std::io::prelude::*;
 use flate2::read::GzDecoder;
+use std::cell::RefCell;
+use std::collections::HashMap;
+use std::convert::TryInto;
+use std::io::prelude::*;
+use std::rc::Rc;
 
-use crate::driver::metadata::VgmHeader;
+use crate::driver::metadata::parse_vgm_meta;
 use crate::driver::metadata::Gd3;
 use crate::driver::metadata::Jsonlize;
-use crate::driver::metadata::parse_vgm_meta;
+use crate::driver::metadata::VgmHeader;
 
-use crate::sound::{SN76489, YM3438, PWM, Device};
+use crate::sound::{RomDevice, RomSet, SoundDevice, PWM, SEGAPCM, SN76489, YM3438};
 
 pub struct VgmPlay {
     ym3438: YM3438,
     sn76489: SN76489,
     pwm: PWM,
+    segapcm: SEGAPCM,
     sample_rate: u32,
     vgmpos: usize,
-    datpos: usize,
+    data_pos: usize,
     pcmpos: usize,
     pcmoffset: usize,
     pcm_stream_sample_count: u32,
@@ -34,7 +39,8 @@ pub struct VgmPlay {
     sampling_l: Vec<f32>,
     sampling_r: Vec<f32>,
     vgm_header: VgmHeader,
-    vgm_gd3: Gd3
+    vgm_gd3: Gd3,
+    rombank: HashMap<usize, Rc<RefCell<RomSet>>>,
 }
 
 #[allow(dead_code)]
@@ -44,12 +50,14 @@ impl VgmPlay {
     ///
     pub fn new(sample_rate: u32, max_sampling_size: usize, vgm_file_size: usize) -> Self {
         VgmPlay {
+            // TODO: vectorize sound device
             ym3438: YM3438::new(),
             sn76489: SN76489::new(),
             pwm: PWM::new(),
+            segapcm: SEGAPCM::new(),
             sample_rate,
             vgmpos: 0,
-            datpos: 0,
+            data_pos: 0,
             pcmpos: 0,
             pcmoffset: 0,
             pcm_stream_sample_count: 0,
@@ -69,7 +77,8 @@ impl VgmPlay {
             sampling_l: vec![0_f32; max_sampling_size],
             sampling_r: vec![0_f32; max_sampling_size],
             vgm_header: VgmHeader::default(),
-            vgm_gd3: Gd3::default()
+            vgm_gd3: Gd3::default(),
+            rombank: HashMap::new(),
         }
     }
 
@@ -127,34 +136,46 @@ impl VgmPlay {
                 self.vgm_header = header;
                 self.vgm_gd3 = gd3;
             }
-            Err(message) => return Err(message)
+            Err(message) => return Err(message),
         };
 
         self.vgm_loop = self.vgm_header.offset_loop as usize;
         self.vgm_loop_offset = (0x1c + self.vgm_header.offset_loop) as usize;
         self.vgmpos = (0x34 + self.vgm_header.vgm_data_offset) as usize;
 
-        // TODO: MEGADRIVE default values
-        let mut clock_sn76489 : u32 = self.vgm_header.clock_sn76489;
-        let mut clock_ym2612 : u32 = self.vgm_header.clock_ym2612;
-        let mut clock_pwm: u32 = self.vgm_header.clock_pwm;
-        if clock_sn76489 == 0 && clock_ym2612 == 0 && clock_pwm == 0 {
-            return Err("This VGM is not supported");
+        // TODO: vectorize sound device
+        if self.vgm_header.clock_sn76489 != 0 {
+            // 3_579_545
+            SoundDevice::init(
+                &mut self.sn76489,
+                self.sample_rate,
+                self.vgm_header.clock_sn76489,
+            );
         }
-        if clock_sn76489 == 0 {
-            clock_sn76489 = 3_579_545;
+        if self.vgm_header.clock_ym2612 != 0 {
+            // 7_670_453
+            SoundDevice::init(
+                &mut self.ym3438,
+                self.sample_rate,
+                self.vgm_header.clock_ym2612,
+            );
         }
-        if clock_ym2612 == 0 {
-            clock_ym2612 = 7_670_453;
+        if self.vgm_header.clock_pwm != 0 {
+            // 23_011_360
+            SoundDevice::init(&mut self.pwm, self.sample_rate, self.vgm_header.clock_pwm);
         }
-        if clock_pwm == 0 {
-            clock_pwm = 23_011_360;
+        if self.vgm_header.sega_pcm_clock != 0 {
+            // 4_000_000
+            SoundDevice::init(
+                &mut self.segapcm,
+                self.sample_rate,
+                self.vgm_header.sega_pcm_clock,
+            );
+            // init romset
+            let romset = Rc::new(RefCell::new(RomSet::new()));
+            RomDevice::set_rom(&mut self.segapcm, romset.clone());
+            self.rombank.insert(0x80, romset); // 0x80 segapcm
         }
-
-        // init sound chip
-        Device::init(&mut self.ym3438, self.sample_rate, clock_ym2612);
-        Device::init(&mut self.sn76489, self.sample_rate, clock_sn76489);
-        Device::init(&mut self.pwm, self.sample_rate, clock_pwm);
 
         Ok(())
     }
@@ -190,13 +211,49 @@ impl VgmPlay {
             }
             for _ in 0..update_frame_size {
                 // straming pcm update
-                if self.pcm_stream_length > 0 && (self.pcm_stream_sampling_pos % self.pcm_stream_sample_count) as usize == 0 {
+                if self.pcm_stream_length > 0
+                    && (self.pcm_stream_sampling_pos % self.pcm_stream_sample_count) as usize == 0
+                {
                     self.update_dac();
                 }
                 // mix each device 1 sampling
-                Device::update(&mut self.sn76489, &mut self.sampling_l, &mut self.sampling_r, 1, buffer_pos);
-                Device::update(&mut self.pwm, &mut self.sampling_l, &mut self.sampling_r, 1, buffer_pos);
-                Device::update(&mut self.ym3438, &mut self.sampling_l, &mut self.sampling_r, 1, buffer_pos);
+                // TODO: vectorize sound device
+                if self.vgm_header.clock_sn76489 != 0 {
+                    SoundDevice::update(
+                        &mut self.sn76489,
+                        &mut self.sampling_l,
+                        &mut self.sampling_r,
+                        1,
+                        buffer_pos,
+                    );
+                }
+                if self.vgm_header.clock_ym2612 != 0 {
+                    SoundDevice::update(
+                        &mut self.ym3438,
+                        &mut self.sampling_l,
+                        &mut self.sampling_r,
+                        1,
+                        buffer_pos,
+                    );
+                }
+                if self.vgm_header.clock_pwm != 0 {
+                    SoundDevice::update(
+                        &mut self.pwm,
+                        &mut self.sampling_l,
+                        &mut self.sampling_r,
+                        1,
+                        buffer_pos,
+                    );
+                }
+                if self.vgm_header.sega_pcm_clock != 0 {
+                    SoundDevice::update(
+                        &mut self.segapcm,
+                        &mut self.sampling_l,
+                        &mut self.sampling_r,
+                        1,
+                        buffer_pos,
+                    );
+                }
                 if self.remain_frame_size > 0 {
                     self.remain_frame_size -= 1;
                 }
@@ -251,14 +308,19 @@ impl VgmPlay {
         match command {
             0x50 => {
                 dat = self.get_vgm_u8();
-                Device::write(&mut self.sn76489, 0, dat);
+                SoundDevice::write(&mut self.sn76489, 0, dat);
             }
             0x52 | 0x53 => {
                 reg = self.get_vgm_u8();
                 dat = self.get_vgm_u8();
                 let port = u32::from(command & 0x01) << 1;
-                Device::write(&mut self.ym3438, port, reg);
-                Device::write(&mut self.ym3438, port + 1, dat);
+                SoundDevice::write(&mut self.ym3438, port, reg);
+                SoundDevice::write(&mut self.ym3438, port + 1, dat);
+            }
+            0x54 => {
+                // TODO: YM2151 write
+                self.get_vgm_u8(); // reg
+                self.get_vgm_u8(); // dat
             }
             0x61 => {
                 wait = self.get_vgm_u16();
@@ -280,18 +342,52 @@ impl VgmPlay {
                 }
             }
             0x67 => {
-                self.get_vgm_u8(); // 0x66
-                self.get_vgm_u8(); // 0x00 data type
-                self.datpos = self.vgmpos + 4;
-                self.vgmpos += self.get_vgm_u32() as usize;
+                self.get_vgm_u8(); // 0x66 compatibility command to make older players stop parsing the stream
+                let data_type = self.get_vgm_u8();
+                let size = self.get_vgm_u32();
+                let data_pos = self.vgmpos;
+                self.vgmpos += size as usize;
+                // handle data block
+                if (0x00..=0x3f).contains(&data_type) {
+                    // data of recorded streams (uncompressed) (for ym2612)
+                    self.data_pos = data_pos;
+                } else if (0x80..=0xbf).contains(&data_type) {
+                    // ROM/RAM Image dumps (0x80 segapcm)
+                    let rom_size = u32::from_le_bytes(
+                        self.vgmdata[data_pos..(data_pos + 4)].try_into().unwrap(),
+                    );
+                    let start_address = u32::from_le_bytes(
+                        self.vgmdata[(data_pos + 4)..(data_pos + 8)]
+                            .try_into()
+                            .unwrap(),
+                    );
+                    let mut data_size: usize = 0;
+                    if start_address < rom_size {
+                        data_size = u32::min(size - 8, rom_size - start_address) as usize;
+                    }
+                    let start_address = start_address as usize;
+                    // to_vec(clone) is external SPI memory simulation.
+                    let memory = self.vgmdata[(data_pos + 8)..(data_pos + 8) + data_size].to_vec();
+                    self.add_rom(
+                        data_type as usize,
+                        memory,
+                        start_address,
+                        start_address + data_size - 1,
+                    );
+                }
             }
             0x70..=0x7f => {
                 wait = ((command & 0x0f) + 1).into();
             }
             0x80..=0x8f => {
+                // YM2612 PCM
                 wait = (command & 0x0f).into();
-                Device::write(&mut self.ym3438, 0, 0x2a);
-                Device::write(&mut self.ym3438, 1, self.vgmdata[self.datpos + self.pcmpos + self.pcmoffset]);
+                SoundDevice::write(&mut self.ym3438, 0, 0x2a);
+                SoundDevice::write(
+                    &mut self.ym3438,
+                    1,
+                    self.vgmdata[self.data_pos + self.pcmpos + self.pcmoffset],
+                );
                 self.pcmoffset += 1;
             }
             0x90 => {
@@ -345,7 +441,12 @@ impl VgmPlay {
                 let raw2 = self.get_vgm_u8();
                 let channel = (raw1 & 0xf0) >> 4_u8;
                 let data: u16 = (raw1 as u16 & 0x0f) << 8 | raw2 as u16;
-                Device::write(&mut self.pwm, channel as u32, data);
+                SoundDevice::write(&mut self.pwm, channel as u32, data);
+            }
+            0xc0 => {
+                let offset = self.get_vgm_u16();
+                let dat = self.get_vgm_u8();
+                SoundDevice::write(&mut self.segapcm, u32::from(offset), dat);
             }
             0xe0 => {
                 self.pcmpos = self.get_vgm_u32() as usize;
@@ -353,19 +454,41 @@ impl VgmPlay {
             }
             _ => {
                 #[cfg(feature = "console_error_panic_hook")]
-                console_log!("unknown cmd at {:x}: {:x}", self.vgmpos - 1, self.vgmdata[self.vgmpos - 1]);
+                console_log!(
+                    "unknown cmd at {:x}: {:x}",
+                    self.vgmpos - 1,
+                    self.vgmdata[self.vgmpos - 1]
+                );
                 #[cfg(not(feature = "console_error_panic_hook"))]
-                println!("unknown cmd at {:x}: {:x}", self.vgmpos - 1, self.vgmdata[self.vgmpos - 1]);
+                println!(
+                    "unknown cmd at {:x}: {:x}",
+                    self.vgmpos - 1,
+                    self.vgmdata[self.vgmpos - 1]
+                );
             }
         }
         wait
     }
 
     fn update_dac(&mut self) {
-        Device::write(&mut self.ym3438, 0, 0x2a);
-        Device::write(&mut self.ym3438, 1, self.vgmdata[self.datpos + self.pcm_stream_pos + self.pcm_stream_offset]);
+        SoundDevice::write(&mut self.ym3438, 0, 0x2a);
+        SoundDevice::write(
+            &mut self.ym3438,
+            1,
+            self.vgmdata[self.data_pos + self.pcm_stream_pos + self.pcm_stream_offset],
+        );
         self.pcm_stream_length -= 1;
         self.pcm_stream_pos += 1;
+    }
+
+    fn add_rom(&mut self, index: usize, memory: Vec<u8>, start_address: usize, end_address: usize) {
+        if self.rombank.contains_key(&index) {
+            self.rombank.get(&index).unwrap().borrow_mut().add_rom(
+                memory,
+                start_address,
+                end_address,
+            );
+        }
     }
 }
 
@@ -390,17 +513,28 @@ mod tests {
         play("../docs/vgm/ym2612.vgm")
     }
 
+    #[test]
+    fn segapcm_1() {
+        play("../docs/vgm/segapcm.vgm")
+    }
+
     fn play(filepath: &str) {
         // load sn76489 vgm file
         let mut file = File::open(filepath).unwrap();
         let mut buffer = Vec::new();
         let _ = file.read_to_end(&mut buffer).unwrap();
 
-        let mut vgmplay = VgmPlay::new(44100, MAX_SAMPLING_SIZE, file.metadata().unwrap().len() as usize);
-        // set vgmdata
+        let mut vgmplay = VgmPlay::new(
+            44100,
+            MAX_SAMPLING_SIZE,
+            file.metadata().unwrap().len() as usize,
+        );
+        // set vgmdata (Wasm simulation)
         let vgmdata_ref = vgmplay.get_vgmfile_ref();
         for (i, buf) in buffer.iter().enumerate() {
-            unsafe { *vgmdata_ref.add(i) = *buf; }
+            unsafe {
+                *vgmdata_ref.add(i) = *buf;
+            }
         }
 
         // init & sample
