@@ -7,21 +7,21 @@
         "chiptune": "file:./pkg"
     },
     "devDependencies": {
-        "@babel/core": "^7.11.1",
-        "@babel/preset-env": "^7.11.0",
+        "@babel/core": "^7.14.6",
+        "@babel/preset-env": "^7.14.7",
         "babel-eslint": "^10.1.0",
-        "babel-loader": "^8.1.0",
-        "copy-webpack-plugin": "^6.0.3",
-        "eslint": "^7.6.0",
-        "htmlhint": "^0.14.1",
-        "webpack": "^4.44.1",
-        "webpack-cli": "^3.3.12",
-        "webpack-dev-server": "^3.11.0",
-        "websocket-extensions": ">=0.1.4",
-        "webpack-merge": "^5.1.1"
+        "babel-loader": "^8.2.2",
+        "copy-webpack-plugin": "^9.0.1",
+        "eslint": "^7.29.0",
+        "htmlhint": "^0.9.9",
+        "webpack": "^5.42.0",
+        "webpack-cli": "^4.7.2",
+        "webpack-dev-server": "^3.11.2",
+        "webpack-merge": "^5.8.0",
+        "websocket-extensions": ">=0.1.4"
     },
     "scripts": {
         "build": "webpack --config webpack.config.js",
-        "start": "webpack-dev-server --config webpack.dev.js"
+        "start": "webpack serve --config webpack.dev.js"
     }
 }

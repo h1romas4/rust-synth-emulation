@@ -6,6 +6,7 @@ module.exports = {
     output: {
         path: path.resolve(__dirname, "../dist"), // eslint-disable-line
         filename: "bootstrap.js",
+        webassemblyModuleFilename: "[hash].wasm",
     },
     mode: "development",
     plugins: [
@@ -24,6 +25,9 @@ module.exports = {
                 }]
             }
         ]
+    },
+    experiments: {
+        asyncWebAssembly: true,
     },
     resolve: {
         extensions: ['.js', '.wasm'],
