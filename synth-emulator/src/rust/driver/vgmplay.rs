@@ -19,10 +19,10 @@ pub struct VgmPlay {
     sound_device_segapcm: SEGAPCM,
     sound_romset: HashMap<usize, Rc<RefCell<RomSet>>>,
     sample_rate: u32,
-    vgmpos: usize,
+    vgm_pos: usize,
     data_pos: usize,
-    pcmpos: usize,
-    pcmoffset: usize,
+    pcm_pos: usize,
+    pcm_offset: usize,
     pcm_stream_sample_count: u32,
     pcm_stream_sampling_pos: u32,
     pcm_stream_length: usize,
@@ -33,9 +33,9 @@ pub struct VgmPlay {
     vgm_loop: usize,
     vgm_loop_offset: usize,
     vgm_loop_count: usize,
-    vgmend: bool,
-    vgmfile: Vec<u8>,
-    vgmdata: Vec<u8>,
+    vgm_end: bool,
+    vgm_file: Vec<u8>,
+    vgm_data: Vec<u8>,
     max_sampling_size: usize,
     sampling_l: Vec<f32>,
     sampling_r: Vec<f32>,
@@ -57,10 +57,10 @@ impl VgmPlay {
             sound_device_segapcm: SEGAPCM::new(),
             sound_romset: HashMap::new(),
             sample_rate,
-            vgmpos: 0,
+            vgm_pos: 0,
             data_pos: 0,
-            pcmpos: 0,
-            pcmoffset: 0,
+            pcm_pos: 0,
+            pcm_offset: 0,
             pcm_stream_sample_count: 0,
             pcm_stream_sampling_pos: 0,
             pcm_stream_length: 0,
@@ -71,9 +71,9 @@ impl VgmPlay {
             vgm_loop: 0,
             vgm_loop_offset: 0,
             vgm_loop_count: 0,
-            vgmend: false,
-            vgmfile: vec![0; vgm_file_size],
-            vgmdata: Vec::new(),
+            vgm_end: false,
+            vgm_file: vec![0; vgm_file_size],
+            vgm_data: Vec::new(),
             max_sampling_size,
             sampling_l: vec![0_f32; max_sampling_size],
             sampling_r: vec![0_f32; max_sampling_size],
@@ -86,7 +86,7 @@ impl VgmPlay {
     /// Return vgmfile buffer referance.
     ///
     pub fn get_vgmfile_ref(&mut self) -> *mut u8 {
-        self.vgmfile.as_mut_ptr()
+        self.vgm_file.as_mut_ptr()
     }
 
     ///
@@ -131,7 +131,7 @@ impl VgmPlay {
         // try vgz extract
         self.extract();
 
-        match parse_vgm_meta(&self.vgmdata) {
+        match parse_vgm_meta(&self.vgm_data) {
             Ok((header, gd3)) => {
                 self.vgm_header = header;
                 self.vgm_gd3 = gd3;
@@ -141,7 +141,7 @@ impl VgmPlay {
 
         self.vgm_loop = self.vgm_header.offset_loop as usize;
         self.vgm_loop_offset = (0x1c + self.vgm_header.offset_loop) as usize;
-        self.vgmpos = (0x34 + self.vgm_header.vgm_data_offset) as usize;
+        self.vgm_pos = (0x34 + self.vgm_header.vgm_data_offset) as usize;
 
         // TODO: vectorize sound device
         if self.vgm_header.clock_sn76489 != 0 {
@@ -260,14 +260,14 @@ impl VgmPlay {
                 buffer_pos += 1;
                 self.pcm_stream_sampling_pos += 1;
             }
-            buffer_pos < self.max_sampling_size && !self.vgmend
+            buffer_pos < self.max_sampling_size && !self.vgm_end
         } {}
         self.remain_frame_size = frame_size - update_frame_size;
 
         if self.vgm_loop_count == std::usize::MAX {
             self.vgm_loop_count = 0;
         }
-        if self.vgmend {
+        if self.vgm_end {
             std::usize::MAX
         } else {
             self.vgm_loop_count
@@ -275,15 +275,15 @@ impl VgmPlay {
     }
 
     fn extract(&mut self) {
-        let mut d = GzDecoder::new(self.vgmfile.as_slice());
-        if d.read_to_end(&mut self.vgmdata).is_err() {
-            self.vgmdata = self.vgmfile.clone();
+        let mut d = GzDecoder::new(self.vgm_file.as_slice());
+        if d.read_to_end(&mut self.vgm_data).is_err() {
+            self.vgm_data = self.vgm_file.clone();
         }
     }
 
     fn get_vgm_u8(&mut self) -> u8 {
-        let ret = self.vgmdata[self.vgmpos];
-        self.vgmpos += 1;
+        let ret = self.vgm_data[self.vgm_pos];
+        self.vgm_pos += 1;
         ret
     }
 
@@ -333,12 +333,12 @@ impl VgmPlay {
             }
             0x66 => {
                 if self.vgm_loop == 0 {
-                    self.vgmend = true;
+                    self.vgm_end = true;
                 } else if repeat {
-                    self.vgmpos = self.vgm_loop_offset;
+                    self.vgm_pos = self.vgm_loop_offset;
                     self.vgm_loop_count += 1;
                 } else {
-                    self.vgmend = true;
+                    self.vgm_end = true;
                 }
             }
             0x67 => {
@@ -346,8 +346,8 @@ impl VgmPlay {
                 self.get_vgm_u8();
                 let data_type = self.get_vgm_u8();
                 let size = self.get_vgm_u32();
-                let data_pos = self.vgmpos;
-                self.vgmpos += size as usize;
+                let data_pos = self.vgm_pos;
+                self.vgm_pos += size as usize;
                 // handle data block
                 if (0x00..=0x3f).contains(&data_type) {
                     // data of recorded streams (uncompressed) (for ym2612)
@@ -355,10 +355,10 @@ impl VgmPlay {
                 } else if (0x80..=0xbf).contains(&data_type) {
                     // ROM/RAM Image dumps (0x80 segapcm)
                     let rom_size = u32::from_le_bytes(
-                        self.vgmdata[data_pos..(data_pos + 4)].try_into().unwrap(),
+                        self.vgm_data[data_pos..(data_pos + 4)].try_into().unwrap(),
                     );
                     let start_address = u32::from_le_bytes(
-                        self.vgmdata[(data_pos + 4)..(data_pos + 8)]
+                        self.vgm_data[(data_pos + 4)..(data_pos + 8)]
                             .try_into()
                             .unwrap(),
                     );
@@ -369,7 +369,7 @@ impl VgmPlay {
                     let start_address = start_address as usize;
                     self.add_rom(
                         data_type as usize,
-                        &self.vgmdata[(data_pos + 8)..(data_pos + 8) + data_size],
+                        &self.vgm_data[(data_pos + 8)..(data_pos + 8) + data_size],
                         start_address,
                         start_address + data_size - 1,
                     );
@@ -385,9 +385,9 @@ impl VgmPlay {
                 SoundDevice::write(
                     &mut self.sound_device_ym3438,
                     1,
-                    self.vgmdata[self.data_pos + self.pcmpos + self.pcmoffset],
+                    self.vgm_data[self.data_pos + self.pcm_pos + self.pcm_offset],
                 );
-                self.pcmoffset += 1;
+                self.pcm_offset += 1;
             }
             0x90 => {
                 // TODO: respect stream no
@@ -448,8 +448,8 @@ impl VgmPlay {
                 SoundDevice::write(&mut self.sound_device_segapcm, u32::from(offset), dat);
             }
             0xe0 => {
-                self.pcmpos = self.get_vgm_u32() as usize;
-                self.pcmoffset = 0;
+                self.pcm_pos = self.get_vgm_u32() as usize;
+                self.pcm_offset = 0;
             }
             _ => {
                 #[cfg(feature = "console_error_panic_hook")]
@@ -461,8 +461,8 @@ impl VgmPlay {
                 #[cfg(not(feature = "console_error_panic_hook"))]
                 println!(
                     "unknown cmd at {:x}: {:x}",
-                    self.vgmpos - 1,
-                    self.vgmdata[self.vgmpos - 1]
+                    self.vgm_pos - 1,
+                    self.vgm_data[self.vgm_pos - 1]
                 );
             }
         }
@@ -474,7 +474,7 @@ impl VgmPlay {
         SoundDevice::write(
             &mut self.sound_device_ym3438,
             1,
-            self.vgmdata[self.data_pos + self.pcm_stream_pos + self.pcm_stream_offset],
+            self.vgm_data[self.data_pos + self.pcm_stream_pos + self.pcm_stream_offset],
         );
         self.pcm_stream_length -= 1;
         self.pcm_stream_pos += 1;
