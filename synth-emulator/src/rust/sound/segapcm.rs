@@ -11,7 +11,7 @@ use crate::sound::{convert_sample_i2f, RomDevice, RomSet, SoundDevice, SoundDevi
  *  https://github.com/mamedev/mame/blob/master/src/devices/sound/segapcm.cpp
  *  rev. 70743c6fb2602a5c2666c679b618706eabfca2ad
  */
-use std::{borrow::Borrow, cell::RefCell, convert::TryInto, rc::Rc};
+use std::{cell::RefCell, rc::Rc};
 
 #[allow(clippy::upper_case_acronyms)]
 pub struct SEGAPCM {
@@ -72,23 +72,20 @@ impl SEGAPCM {
         //          other bits: bank
         // 0x87     ?
         for ch in 0..16 {
-            let len = self.ram.len();
-            let regs = &mut self.ram[ch * 8..len];
+            let regs = &mut self.ram[ch * 8..];
 
             /* only process active channels */
             if regs[0x86] & 1 == 0 {
-                let offset: usize = (u32::from(regs[0x86] & self.bankmask) << self.bankshift)
-                    .try_into()
-                    .unwrap();
+                let offset: i32 = i32::from(regs[0x86] & self.bankmask) << self.bankshift;
                 let mut addr: u32 = u32::from(regs[0x85]) << 16
                     | u32::from(regs[0x84]) << 8
                     | u32::from(self.low[ch]);
                 let loops: u32 = u32::from(regs[0x05]) << 16 | u32::from(regs[0x04]) << 8;
-                let end: u8 = regs[6] + 1;
+                let end: u32 = u32::from(regs[6]) + 1;
 
-                for _i in 0..numsamples {
+                for i in 0..numsamples {
                     /* handle looping if we've hit the end */
-                    if (addr >> 16) as u8 == end {
+                    if (addr >> 16) == end {
                         if regs[0x86] & 2 != 0 {
                             regs[0x86] |= 1;
                             break;
@@ -102,12 +99,13 @@ impl SEGAPCM {
                         .as_ref()
                         .unwrap()
                         .borrow_mut()
-                        .read(offset + (addr >> 8) as usize);
+                        .read(offset as usize + (addr >> 8) as usize);
+                    let v: i32 = i32::from(v) - 0x80;
                     /* apply panning and advance */
-                    // buffer_l[buffer_pos + i] +=
-                    //     convert_sample_i2f((v as i8 * (regs[2] & 0x7f) as i8).into());
-                    // buffer_r[buffer_pos + i] +=
-                    //     convert_sample_i2f((v as i8 * (regs[3] & 0x7f) as i8).into());
+                    buffer_l[buffer_pos + i] +=
+                        convert_sample_i2f(v * (regs[2] & 0x7f) as i32);
+                    buffer_r[buffer_pos + i] +=
+                        convert_sample_i2f(v * (regs[3] & 0x7f) as i32);
                     addr = (addr + regs[7] as u32) & 0xffffff;
                 }
                 /* store back the updated address */

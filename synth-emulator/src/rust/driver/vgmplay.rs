@@ -342,7 +342,8 @@ impl VgmPlay {
                 }
             }
             0x67 => {
-                self.get_vgm_u8(); // 0x66 compatibility command to make older players stop parsing the stream
+                // 0x66 compatibility command to make older players stop parsing the stream
+                self.get_vgm_u8();
                 let data_type = self.get_vgm_u8();
                 let size = self.get_vgm_u32();
                 let data_pos = self.vgmpos;

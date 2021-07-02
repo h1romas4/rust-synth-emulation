@@ -63,7 +63,7 @@ impl RomSet {
     }
 
     pub fn add_rom(&mut self, memory: Vec<u8>, start_address: usize, end_address: usize) {
-        println!("rom: {:<08x} - {:<08x}, {:<08x}, {:<02x}", start_address, end_address, memory.len(), memory[0]);
+        // println!("rom: {:<08x} - {:<08x}, {:<08x}, {:<02x}", start_address, end_address, memory.len(), memory[0]);
         self.rom.push(Rom {
             start_address,
             end_address,

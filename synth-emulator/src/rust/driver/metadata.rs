@@ -405,7 +405,7 @@ mod tests {
 
     #[test]
     fn test_1() {
-        parse("../docs/vgm/38.vgm")
+        parse("../docs/vgm/ym2612.vgm")
     }
 
     fn parse(filepath: &str) {
