@@ -1,0 +1,7 @@
+# webpack5(webassebmlyjs) is not yet able to bundle WebAssembly with bulk memory feature.
+
+# @see also WebAssembly with Reference Types cannot be parsed #13559
+# https://github.com/webpack/webpack/issues/13559
+
+[build]
+rustflags = '-Ctarget-feature=+bulk-memory'
