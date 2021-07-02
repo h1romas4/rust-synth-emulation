@@ -367,11 +367,9 @@ impl VgmPlay {
                         data_size = u32::min(size - 8, rom_size - start_address) as usize;
                     }
                     let start_address = start_address as usize;
-                    // to_vec(clone) is external SPI memory simulation.
-                    let memory = self.vgmdata[(data_pos + 8)..(data_pos + 8) + data_size].to_vec();
                     self.add_rom(
                         data_type as usize,
-                        memory,
+                        &self.vgmdata[(data_pos + 8)..(data_pos + 8) + data_size],
                         start_address,
                         start_address + data_size - 1,
                     );
@@ -482,7 +480,7 @@ impl VgmPlay {
         self.pcm_stream_pos += 1;
     }
 
-    fn add_rom(&mut self, index: usize, memory: Vec<u8>, start_address: usize, end_address: usize) {
+    fn add_rom(&self, index: usize, memory: &[u8], start_address: usize, end_address: usize) {
         if self.rombank.contains_key(&index) {
             self.rombank.get(&index).unwrap().borrow_mut().add_rom(
                 memory,
