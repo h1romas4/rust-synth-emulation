@@ -1,15 +1,15 @@
-mod ym3438;
-mod sn76489;
 mod pwm;
 mod segapcm;
+mod sn76489;
+mod ym3438;
 
 use std::cell::RefCell;
 use std::rc::Rc;
 
-pub use crate::sound::ym3438::YM3438 as YM3438;
-pub use crate::sound::sn76489::SN76489 as SN76489;
-pub use crate::sound::pwm::PWM as PWM;
-pub use crate::sound::segapcm::SEGAPCM as SEGAPCM;
+pub use crate::sound::pwm::PWM;
+pub use crate::sound::segapcm::SEGAPCM;
+pub use crate::sound::sn76489::SN76489;
+pub use crate::sound::ym3438::YM3438;
 
 ///
 /// Device Name
@@ -31,11 +31,23 @@ pub trait SoundDevice<T> {
     fn init(&mut self, sample_rate: u32, clock: u32);
     fn reset(&mut self);
     fn write(&mut self, port: u32, data: T);
-    fn update(&mut self, buffer_l: &mut [f32], buffer_r: &mut [f32], numsamples: usize, buffer_pos: usize);
+    fn update(
+        &mut self,
+        buffer_l: &mut [f32],
+        buffer_r: &mut [f32],
+        numsamples: usize,
+        buffer_pos: usize,
+    );
 }
 
+pub type RomBank = Option<Rc<RefCell<RomSet>>>;
+
 pub trait RomDevice {
-    fn set_rom(&mut self, romset: Rc<RefCell<RomSet>>);
+    fn set_rom(&mut self, rombank: RomBank);
+
+    fn read_rom(rombank: &RomBank, address: usize) -> u8 {
+        rombank.as_ref().unwrap().borrow_mut().read(address)
+    }
 }
 
 ///
@@ -57,9 +69,7 @@ pub struct RomSet {
 
 impl RomSet {
     pub fn new() -> RomSet {
-        RomSet {
-            rom: Vec::new()
-        }
+        RomSet { rom: Vec::new() }
     }
 
     pub fn add_rom(&mut self, memory: &[u8], start_address: usize, end_address: usize) {

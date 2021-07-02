@@ -17,6 +17,7 @@ pub struct VgmPlay {
     sn76489: SN76489,
     pwm: PWM,
     segapcm: SEGAPCM,
+    sound_chip_romset: HashMap<usize, Rc<RefCell<RomSet>>>,
     sample_rate: u32,
     vgmpos: usize,
     data_pos: usize,
@@ -40,7 +41,6 @@ pub struct VgmPlay {
     sampling_r: Vec<f32>,
     vgm_header: VgmHeader,
     vgm_gd3: Gd3,
-    rombank: HashMap<usize, Rc<RefCell<RomSet>>>,
 }
 
 #[allow(dead_code)]
@@ -55,6 +55,7 @@ impl VgmPlay {
             sn76489: SN76489::new(),
             pwm: PWM::new(),
             segapcm: SEGAPCM::new(),
+            sound_chip_romset: HashMap::new(),
             sample_rate,
             vgmpos: 0,
             data_pos: 0,
@@ -78,7 +79,6 @@ impl VgmPlay {
             sampling_r: vec![0_f32; max_sampling_size],
             vgm_header: VgmHeader::default(),
             vgm_gd3: Gd3::default(),
-            rombank: HashMap::new(),
         }
     }
 
@@ -173,8 +173,8 @@ impl VgmPlay {
             );
             // init romset
             let romset = Rc::new(RefCell::new(RomSet::new()));
-            RomDevice::set_rom(&mut self.segapcm, romset.clone());
-            self.rombank.insert(0x80, romset); // 0x80 segapcm
+            RomDevice::set_rom(&mut self.segapcm, Some(romset.clone()));
+            self.sound_chip_romset.insert(0x80, romset); // 0x80 segapcm
         }
 
         Ok(())
@@ -481,8 +481,8 @@ impl VgmPlay {
     }
 
     fn add_rom(&self, index: usize, memory: &[u8], start_address: usize, end_address: usize) {
-        if self.rombank.contains_key(&index) {
-            self.rombank.get(&index).unwrap().borrow_mut().add_rom(
+        if self.sound_chip_romset.contains_key(&index) {
+            self.sound_chip_romset.get(&index).unwrap().borrow_mut().add_rom(
                 memory,
                 start_address,
                 end_address,

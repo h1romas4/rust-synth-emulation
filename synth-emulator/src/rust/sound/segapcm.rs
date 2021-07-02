@@ -1,5 +1,5 @@
 // license:BSD-3-Clause
-use crate::sound::{convert_sample_i2f, RomDevice, RomSet, SoundDevice, SoundDeviceName};
+use crate::sound::{convert_sample_i2f, RomDevice, RomSet, RomBank, SoundDevice, SoundDeviceName};
 /**
  * Rust SEGAPCM emulation
  *  Hiromasa Tanaka <h1romas4@gmail.com>
@@ -17,7 +17,7 @@ use std::{cell::RefCell, rc::Rc};
 pub struct SEGAPCM {
     clock: u32,
     ram: [u8; 0x800],
-    romset: Option<Rc<RefCell<RomSet>>>,
+    romset: RomBank,
     bankshift: u8,
     bankmask: u8,
     low: [u8; 16],
@@ -94,12 +94,7 @@ impl SEGAPCM {
                         }
                     }
                     /* fetch the sample */
-                    let v = self
-                        .romset
-                        .as_ref()
-                        .unwrap()
-                        .borrow_mut()
-                        .read(offset as usize + (addr >> 8) as usize);
+                    let v = SEGAPCM::read_rom(&self.romset, offset as usize + (addr >> 8) as usize);
                     let v: i32 = i32::from(v) - 0x80;
                     /* apply panning and advance */
                     buffer_l[buffer_pos + i] +=
@@ -154,7 +149,7 @@ impl SoundDevice<u8> for SEGAPCM {
 }
 
 impl RomDevice for SEGAPCM {
-    fn set_rom(&mut self, romset: Rc<RefCell<RomSet>>) {
-        self.romset = Some(romset);
+    fn set_rom(&mut self, romset: Option<Rc<RefCell<RomSet>>>) {
+        self.romset = romset;
     }
 }
