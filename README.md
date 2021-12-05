@@ -2,6 +2,12 @@
 
 YM2612/SN76489 VGM player by Rust
 
+## New version here
+
+> [libymfm.wasm](https://github.com/h1romas4/libymfm.wasm)
+>
+> This repository is an experimental WebAssembly build of the [ymfm](https://github.com/aaronsgiles/ymfm) Yamaha FM sound cores library. 
+
 ## WebAssembly demo site
 
 [![](https://raw.githubusercontent.com/h1romas4/rust-synth-emulation/master/docs/images/ogp.png)](https://h1romas4.github.io/rust-synth-emulation/index.html)
