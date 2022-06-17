@@ -10,9 +10,9 @@ checksum = "f26201604c87b1e01bd3d98f8d5d9a8fcbb815e8cedb41ffccbeb4bf593a35fe"
 
 [[package]]
 name = "array-macro"
-version = "1.0.5"
+version = "2.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "06e97b4e522f9e55523001238ac59d13a8603af57f69980de5d8de4bbbe8ada6"
+checksum = "d7dcc5a412440417e539ac67c51a609414e191f2558f2ad53e4610ee36fad8a3"
 
 [[package]]
 name = "arrayvec"
